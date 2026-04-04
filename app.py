@@ -160,8 +160,20 @@ def transform_secrets(m):
         return {k: transform_secrets(v) for k, v in m.items()}
     return m
 
-credentials = transform_secrets(st.secrets["credentials"])
-cookie      = transform_secrets(st.secrets["cookie"])
+try:
+    credentials = transform_secrets(st.secrets["credentials"])
+    cookie      = transform_secrets(st.secrets["cookie"])
+except Exception:
+    # Fallback si no hay secretos cargados
+    credentials = {"usernames": {}}
+    cookie = {"name": "test", "key": "test", "expiry_days": 1}
+
+# USUARIO DE DIAGNÓSTICO (Temporalmente insertado)
+credentials["usernames"]["test"] = {
+    "email": "test@chimire.com",
+    "name": "Usuario de Prueba",
+    "password": stauth.Hasher.hash("123")
+}
 
 authenticator = stauth.Authenticate(
     credentials,
