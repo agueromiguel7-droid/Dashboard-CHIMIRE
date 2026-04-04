@@ -167,8 +167,7 @@ authenticator = stauth.Authenticate(
     credentials,
     cookie["name"],
     cookie["key"],
-    cookie["expiry_days"],
-    auto_hash=True
+    cookie["expiry_days"]
 )
 
 authenticator.login()
