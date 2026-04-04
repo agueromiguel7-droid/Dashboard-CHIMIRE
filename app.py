@@ -156,24 +156,18 @@ st.markdown("""
 
 # --- AUTHENTICATION ---
 def transform_secrets(m):
+    """Convierte st.secrets (AttrDict) a un diccionario estándar de Python."""
     if isinstance(m, (dict, st.runtime.secrets.Secrets)) or hasattr(m, 'items'):
         return {k: transform_secrets(v) for k, v in m.items()}
     return m
 
+# Carga robusta de credenciales
 try:
     credentials = transform_secrets(st.secrets["credentials"])
     cookie      = transform_secrets(st.secrets["cookie"])
 except Exception:
-    # Fallback si no hay secretos cargados
-    credentials = {"usernames": {}}
-    cookie = {"name": "test", "key": "test", "expiry_days": 1}
-
-# USUARIO DE DIAGNÓSTICO (Temporalmente insertado)
-credentials["usernames"]["test"] = {
-    "email": "test@chimire.com",
-    "name": "Usuario de Prueba",
-    "password": stauth.Hasher.hash("123")
-}
+    st.error("⚠️ Error cargando secretos. Por favor configura [credentials] y [cookie] en Streamlit Cloud.")
+    st.stop()
 
 authenticator = stauth.Authenticate(
     credentials,
