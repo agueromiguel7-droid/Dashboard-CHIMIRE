@@ -1,0 +1,265 @@
+﻿Help on class Authenticate in module streamlit_authenticator.views.authentication_view:
+
+class Authenticate(builtins.object)
+ |  Authenticate(credentials: Union[dict, str], cookie_name: str = 'some_cookie_name', cookie_key: str = 'some_key', cookie_expiry_days: float = 30.0, validator: Optional[streamlit_authenticator.utilities.validator.Validator] = None, auto_hash: bool = True, **kwargs: Optional[Dict[str, Any]])
+ |  
+ |  This class renders login, logout, register user, reset password, forgot password, 
+ |  forgot username, and modify user details widgets.
+ |  
+ |  Methods defined here:
+ |  
+ |  __init__(self, credentials: Union[dict, str], cookie_name: str = 'some_cookie_name', cookie_key: str = 'some_key', cookie_expiry_days: float = 30.0, validator: Optional[streamlit_authenticator.utilities.validator.Validator] = None, auto_hash: bool = True, **kwargs: Optional[Dict[str, Any]])
+ |      Create a new instance of "Authenticate".
+ |      
+ |      Parameters
+ |      ----------
+ |      credentials: dict, str
+ |          Dictionary of usernames, names, passwords, emails, and other user data; or path
+ |          pointing to the location of the config file.
+ |      cookie_name: str
+ |          Name of the re-authentication cookie stored on the client's browser for password-less 
+ |          re-authentication.
+ |      cookie_key: str
+ |          Key to be used to hash the signature of the re-authentication cookie.
+ |      cookie_expiry_days: float
+ |          Number of days before the re-authentication cookie automatically expires on the client's 
+ |          browser.       
+ |      validator: Validator, optional
+ |          Validator object that checks the validity of the username, name, and email fields.
+ |      auto_hash: bool
+ |          Automatic hashing requirement for passwords, 
+ |          True: plain text passwords will be automatically hashed,
+ |          False: plain text passwords will not be automatically hashed.
+ |      **kwargs : dict, optional
+ |          Arguments to pass to the Authenticate class.
+ |  
+ |  experimental_guest_login(self, button_name: str = 'Guest login', location: str = 'main', provider: str = 'google', oauth2: Optional[dict] = None, max_concurrent_users: Optional[int] = None, single_session: bool = False, roles: Optional[List[str]] = None, callback: Optional[Callable] = None)
+ |      Renders a guest login button.
+ |      
+ |      Parameters
+ |      ----------
+ |      button_name: str
+ |          Rendered name of the guest login button.
+ |      location: str
+ |          Location of the guest login button i.e. main or sidebar.
+ |      provider: str
+ |          OAuth2 provider selection i.e. google or microsoft.
+ |      oauth2: dict, optional
+ |          Configuration parameters to implement an OAuth2 authentication.
+ |      max_concurrent_users: int, optional
+ |          Maximum number of users allowed to login concurrently.
+ |      single_session: bool
+ |          Disables the ability for the same user to log in multiple sessions,
+ |          True: single session allowed,
+ |          False: multiple sessions allowed.
+ |      roles: list, optional
+ |          User roles for guest users.
+ |      callback: callable, optional
+ |          Callback function that will be invoked on button press.
+ |  
+ |  forgot_password(self, location: str = 'main', fields: Optional[Dict[str, str]] = None, captcha: bool = False, clear_on_submit: bool = False, key: str = 'Forgot password', callback: Optional[Callable] = None) -> tuple
+ |      Renders a forgot password widget.
+ |      
+ |      Parameters
+ |      ----------
+ |      location: str
+ |          Location of the forgot password widget i.e. main or sidebar.
+ |      fields: dict, optional
+ |          Rendered names of the fields/buttons.
+ |      captcha: bool
+ |          Captcha requirement for the forgot password widget, 
+ |          True: captcha required,
+ |          False: captcha removed.
+ |      clear_on_submit: bool
+ |          Clear on submit setting, 
+ |          True: clears inputs on submit, 
+ |          False: keeps inputs on submit.
+ |      key: str
+ |          Unique key provided to widget to avoid duplicate WidgetID errors.
+ |      callback: callable, optional
+ |          Callback function that will be invoked on form submission.
+ |      
+ |      Returns
+ |      -------
+ |      str
+ |          Username associated with the forgotten password.
+ |      str
+ |          Email associated with the forgotten password.
+ |      str
+ |          New plain text password that should be transferred to the user securely.
+ |  
+ |  forgot_username(self, location: str = 'main', fields: Optional[Dict[str, str]] = None, captcha: bool = False, clear_on_submit: bool = False, key: str = 'Forgot username', callback: Optional[Callable] = None) -> tuple
+ |      Renders a forgot username widget.
+ |      
+ |      Parameters
+ |      ----------
+ |      location: str
+ |          Location of the forgot username widget i.e. main or sidebar.
+ |      fields: dict, optional
+ |          Rendered names of the fields/buttons.
+ |      captcha: bool
+ |          Captcha requirement for the forgot username widget, 
+ |          True: captcha required,
+ |          False: captcha removed.
+ |      clear_on_submit: bool
+ |          Clear on submit setting, 
+ |          True: clears inputs on submit, 
+ |          False: keeps inputs on submit.
+ |      key: str
+ |          Unique key provided to widget to avoid duplicate WidgetID errors.
+ |      callback: callable, optional
+ |          Callback function that will be invoked on form submission.
+ |      
+ |      Returns
+ |      -------
+ |      str
+ |          Forgotten username that should be transferred to the user securely.
+ |      str
+ |          Email associated with the forgotten username.
+ |  
+ |  login(self, location: str = 'main', max_concurrent_users: Optional[int] = None, max_login_attempts: Optional[int] = None, fields: Optional[Dict[str, str]] = None, captcha: bool = False, single_session: bool = False, clear_on_submit: bool = False, key: str = 'Login', callback: Optional[Callable] = None)
+ |      Renders a login widget.
+ |      
+ |      Parameters
+ |      ----------
+ |      location: str
+ |          Location of the logout button i.e. main, sidebar or unrendered.
+ |      max_concurrent_users: int, optional
+ |          Maximum number of users allowed to login concurrently.
+ |      max_login_attempts: int, optional
+ |          Maximum number of failed login attempts a user can make.
+ |      fields: dict, optional
+ |          Rendered names of the fields/buttons.
+ |      captcha: bool
+ |          Captcha requirement for the login widget, 
+ |          True: captcha required,
+ |          False: captcha removed.
+ |      single_session: bool
+ |          Disables the ability for the same user to log in multiple sessions,
+ |          True: single session allowed,
+ |          False: multiple sessions allowed.
+ |      clear_on_submit: bool
+ |          Clear on submit setting, 
+ |          True: clears inputs on submit, 
+ |          False: keeps inputs on submit.
+ |      key: str
+ |          Unique key provided to widget to avoid duplicate WidgetID errors.
+ |      callback: callable, optional
+ |          Callback function that will be invoked on form submission.
+ |  
+ |  logout(self, button_name: str = 'Logout', location: str = 'main', key: str = 'Logout', callback: Optional[Callable] = None)
+ |      Renders a logout button.
+ |      
+ |      Parameters
+ |      ----------
+ |      button_name: str
+ |          Rendered name of the logout button.
+ |      location: str
+ |          Location of the logout button i.e. main, sidebar or unrendered.
+ |      key: str
+ |          Unique key to be used in multi-page applications.
+ |      callback: callable, optional
+ |          Callback function that will be invoked on button press.
+ |  
+ |  register_user(self, location: str = 'main', pre_authorized: Optional[List[str]] = None, domains: Optional[List[str]] = None, fields: Optional[Dict[str, str]] = None, captcha: bool = True, roles: Optional[List[str]] = None, merge_username_email: bool = False, clear_on_submit: bool = False, key: str = 'Register user', callback: Optional[Callable] = None) -> tuple
+ |      Renders a register new user widget.
+ |      
+ |      Parameters
+ |      ----------
+ |      location: str
+ |          Location of the register new user widget i.e. main or sidebar.
+ |      pre-authorized: list, optional
+ |          List of emails of unregistered users who are authorized to register. 
+ |      domains: list, optional
+ |          Required list of domains a new email must belong to i.e. ['gmail.com', 'yahoo.com'], 
+ |          list: required list of domains, 
+ |          None: any domain is allowed.
+ |      fields: dict, optional
+ |          Rendered names of the fields/buttons.
+ |      captcha: bool
+ |          Captcha requirement for the register user widget, 
+ |          True: captcha required,
+ |          False: captcha removed.
+ |      roles: list, optional
+ |          User roles for registered users.
+ |      merge_username_email: bool
+ |          Merges username into email field,
+ |          True: username will be the same as the email,
+ |          False: username and email will be independent.
+ |      clear_on_submit: bool
+ |          Clear on submit setting, 
+ |          True: clears inputs on submit, 
+ |          False: keeps inputs on submit.
+ |      key: str
+ |          Unique key provided to widget to avoid duplicate WidgetID errors.
+ |      callback: callable, optional
+ |          Callback function that will be invoked on form submission.
+ |      
+ |      Returns
+ |      -------
+ |      str
+ |          Email associated with the new user.
+ |      str
+ |          Username associated with the new user.
+ |      str
+ |          Name associated with the new user.
+ |  
+ |  reset_password(self, username: str, location: str = 'main', fields: Optional[Dict[str, str]] = None, clear_on_submit: bool = False, key: str = 'Reset password', callback: Optional[Callable] = None) -> bool
+ |      Renders a password reset widget.
+ |      
+ |      Parameters
+ |      ----------
+ |      username: str
+ |          Username of the user to reset the password for.
+ |      location: str
+ |          Location of the password reset widget i.e. main or sidebar.
+ |      fields: dict, optional
+ |          Rendered names of the fields/buttons.
+ |      clear_on_submit: bool
+ |          Clear on submit setting, 
+ |          True: clears inputs on submit, 
+ |          False: keeps inputs on submit.
+ |      key: str
+ |          Unique key provided to widget to avoid duplicate WidgetID errors.
+ |      callback: callable, optional
+ |          Callback function that will be invoked on form submission.
+ |      
+ |      Returns
+ |      -------
+ |      bool
+ |          Status of resetting the password.
+ |  
+ |  update_user_details(self, username: str, location: str = 'main', fields: Optional[Dict[str, str]] = None, clear_on_submit: bool = False, key: str = 'Update user details', callback: Optional[Callable] = None) -> bool
+ |      Renders a update user details widget.
+ |      
+ |      Parameters
+ |      ----------
+ |      username: str
+ |          Username of the user to update user details for.
+ |      location: str
+ |          Location of the update user details widget i.e. main or sidebar.
+ |      fields: dict, optional
+ |          Rendered names of the fields/buttons.
+ |      clear_on_submit: bool
+ |          Clear on submit setting, 
+ |          True: clears inputs on submit, 
+ |          False: keeps inputs on submit.
+ |      key: str
+ |          Unique key provided to widget to avoid duplicate WidgetID errors.
+ |      callback: callable, optional
+ |          Callback function that will be invoked on form submission.
+ |      
+ |      Returns
+ |      -------
+ |      bool
+ |          Status of updating the user details.
+ |  
+ |  ----------------------------------------------------------------------
+ |  Data descriptors defined here:
+ |  
+ |  __dict__
+ |      dictionary for instance variables (if defined)
+ |  
+ |  __weakref__
+ |      list of weak references to the object (if defined)
+

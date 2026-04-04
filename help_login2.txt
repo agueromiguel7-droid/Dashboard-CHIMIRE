@@ -1,0 +1,32 @@
+﻿Help on function login in module streamlit_authenticator.views.authentication_view:
+
+login(self, location: str = 'main', max_concurrent_users: Optional[int] = None, max_login_attempts: Optional[int] = None, fields: Optional[Dict[str, str]] = None, captcha: bool = False, single_session: bool = False, clear_on_submit: bool = False, key: str = 'Login', callback: Optional[Callable] = None)
+    Renders a login widget.
+    
+    Parameters
+    ----------
+    location: str
+        Location of the logout button i.e. main, sidebar or unrendered.
+    max_concurrent_users: int, optional
+        Maximum number of users allowed to login concurrently.
+    max_login_attempts: int, optional
+        Maximum number of failed login attempts a user can make.
+    fields: dict, optional
+        Rendered names of the fields/buttons.
+    captcha: bool
+        Captcha requirement for the login widget, 
+        True: captcha required,
+        False: captcha removed.
+    single_session: bool
+        Disables the ability for the same user to log in multiple sessions,
+        True: single session allowed,
+        False: multiple sessions allowed.
+    clear_on_submit: bool
+        Clear on submit setting, 
+        True: clears inputs on submit, 
+        False: keeps inputs on submit.
+    key: str
+        Unique key provided to widget to avoid duplicate WidgetID errors.
+    callback: callable, optional
+        Callback function that will be invoked on form submission.
+
