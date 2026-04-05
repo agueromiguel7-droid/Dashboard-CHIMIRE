@@ -154,6 +154,8 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+import bcrypt
+
 # --- AUTHENTICATION ---
 if 'authentication_status' not in st.session_state:
     st.session_state['authentication_status'] = None
@@ -163,7 +165,7 @@ if 'username' not in st.session_state:
     st.session_state['username'] = None
 
 def manual_login():
-    """Formulario de login nativo y manual para evitar errores de la nube."""
+    """Formulario de login nativo usando bcrypt directo para evitar fallos de stauth."""
     with st.container():
         st.markdown("<div style='height:30px'></div>", unsafe_allow_html=True)
         col1, col2, col3 = st.columns([1, 2, 1])
@@ -182,17 +184,15 @@ def manual_login():
                         # 2. Buscar al usuario directamente
                         if user_input in config and isinstance(config[user_input], (dict, st.runtime.secrets.Secrets)):
                             user_data = config[user_input]
-                            # Limpieza profunda del hash para evitar espacios o saltos de línea invisibles
-                            stored_hash = str(user_data.get("password", "")).strip().replace("\n", "").replace("\r", "")
+                            # LIMPIEZA PROFUNDA: Solo permitimos caracteres válidos de BCrypt
+                            import re
+                            raw_val = str(user_data.get("password", ""))
+                            stored_hash = re.sub(r'[^A-Za-z0-9./$]', '', raw_val)
                             
-                            # DIAGNÓSTICO: Si el hash no tiene 60 caracteres, informamos al usuario
-                            if len(stored_hash) != 60:
-                                st.error(f"⚠️ El código (hash) detectado en Secrets es inválido (tiene {len(stored_hash)} caracteres, necesita 60).")
-                                st.info("👉 Por favor, asegúrate de copiar el código completo sin saltos de línea.")
-                                st.session_state['authentication_status'] = False
-                            else:
-                                # 3. Verificar contraseña contra el hash limpio
-                                if stauth.Hasher.check_pw(stored_hash, pass_input):
+                            # 3. Validación Directa con BCrypt (Bypassing stauth BUG)
+                            if len(stored_hash) == 60:
+                                # Convertimos a bytes para bcrypt
+                                if bcrypt.checkpw(pass_input.encode('utf-8'), stored_hash.encode('utf-8')):
                                     st.session_state['authentication_status'] = True
                                     st.session_state['name'] = user_data.get("name", user_input)
                                     st.session_state['username'] = user_input
@@ -200,11 +200,14 @@ def manual_login():
                                 else:
                                     st.error("⚠️ Contraseña incorrecta")
                                     st.session_state['authentication_status'] = False
+                            else:
+                                st.error(f"⚠️ Error de formato: el código tiene {len(stored_hash)} caracteres (debe tener 60).")
+                                st.session_state['authentication_status'] = False
                         else:
                             st.warning(f"⚠️ Usuario '{user_input}' no encontrado en Secrets")
                             st.session_state['authentication_status'] = False
                     except Exception as e:
-                        st.error(f"❌ Error de Sistema: {str(e)}")
+                        st.error(f"❌ Error Técnico: {str(e)}")
                         st.session_state['authentication_status'] = False
 
 if st.session_state['authentication_status'] is not True:
