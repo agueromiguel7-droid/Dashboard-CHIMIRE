@@ -181,9 +181,15 @@ def manual_login():
                         # 1. Cargar secretos (Formato plano)
                         config = st.secrets.to_dict()
                         
-                        # 2. Buscar al usuario directamente
-                        if user_input in config and isinstance(config[user_input], (dict, st.runtime.secrets.Secrets)):
-                            user_data = config[user_input]
+                        # 2. Búsqueda inteligente de usuario (No distingue mayúsculas/minúsculas en el nombre)
+                        target_user = None
+                        for key in config.keys():
+                            if key.lower() == user_input and isinstance(config[key], (dict, st.runtime.secrets.Secrets)):
+                                target_user = key
+                                break
+                        
+                        if target_user:
+                            user_data = config[target_user]
                             # LIMPIEZA PROFUNDA: Solo permitimos caracteres válidos de BCrypt
                             import re
                             raw_val = str(user_data.get("password", ""))
