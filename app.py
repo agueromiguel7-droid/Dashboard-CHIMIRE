@@ -306,7 +306,10 @@ if st.session_state["authentication_status"]:
         st.markdown("<div style='margin-top:15px'></div>", unsafe_allow_html=True)
         st.markdown(f"<p style='font-size:12px;color:#5F6B7A;margin:0;font-weight:500'>👤 {st.session_state['name']}</p>",
                     unsafe_allow_html=True)
-        authenticator.logout('🔒 Cerrar Sesión' if lang == 'Español' else '🔒 Logout', 'sidebar')
+        # Logout (Manual)
+        logout_text = '🔒 Cerrar Sesión' if lang == 'Español' else '🔒 Logout'
+        if st.button(logout_text, use_container_width=True):
+            logout()
 
     # ── TEXTOS i18n GLOBAL ──────────────────────
     texts = {
