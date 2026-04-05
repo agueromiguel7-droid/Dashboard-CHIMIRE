@@ -155,48 +155,61 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- AUTHENTICATION ---
-# Carga de Secretos con Estrategia Plana (Más Robusta en la Nube)
-try:
-    # 1. Definimos los "Secretos Básicos"
-    secrets = st.secrets.to_dict()
-    
-    # 2. Obtenemos datos de Cookie
-    cookie_cfg = secrets.get("cookie", {
-        "name": "chimire_auth_cookie",
-        "key": "chimire_secret_signature",
-        "expiry_days": 30
-    })
+if 'authentication_status' not in st.session_state:
+    st.session_state['authentication_status'] = None
+if 'name' not in st.session_state:
+    st.session_state['name'] = None
+if 'username' not in st.session_state:
+    st.session_state['username'] = None
 
-    # 3. Construimos el diccionario de Credenciales (Estructura que pide stauth)
-    credentials = {"usernames": {}}
-    
-    # Lista de posibles usuarios en formato plano (admin, usuario1, etc.)
-    # Buscamos claves que sean diccionarios en la raíz de los secretos
-    for key, value in secrets.items():
-        if isinstance(value, dict) and "password" in value:
-            # Agregamos este usuario al sistema de autenticación
-            credentials["usernames"][key] = {
-                "email": value.get("email", ""),
-                "name": value.get("name", key),
-                "password": value["password"]
-            }
+def manual_login():
+    """Formulario de login nativo y manual para evitar errores de la nube."""
+    with st.container():
+        st.markdown("<div style='height:30px'></div>", unsafe_allow_html=True)
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.markdown("<h2 style='text-align: center; color: #0B2440;'>CHIMIRE Login</h2>", unsafe_allow_html=True)
+            with st.form("Login Form"):
+                user_input = st.text_input("Username").strip().lower()
+                pass_input = st.text_input("Password", type="password")
+                submit = st.form_submit_button("Login", use_container_width=True)
+                
+                if submit:
+                    try:
+                        # 1. Cargar secretos (Formato plano)
+                        config = st.secrets.to_dict()
+                        
+                        # 2. Buscar al usuario directamente
+                        if user_input in config and isinstance(config[user_input], (dict, st.runtime.secrets.Secrets)):
+                            user_data = config[user_input]
+                            stored_hash = user_data.get("password", "")
+                            
+                            # 3. Verificar contraseña contra el hash
+                            if stauth.Hasher.check_pw(stored_hash, pass_input):
+                                st.session_state['authentication_status'] = True
+                                st.session_state['name'] = user_data.get("name", user_input)
+                                st.session_state['username'] = user_input
+                                st.rerun()
+                            else:
+                                st.error("⚠️ Contraseña incorrecta")
+                                st.session_state['authentication_status'] = False
+                        else:
+                            st.warning(f"⚠️ Usuario '{user_input}' no encontrado en Secrets")
+                            st.session_state['authentication_status'] = False
+                    except Exception as e:
+                        st.error(f"❌ Error de Sistema: {str(e)}")
+                        st.session_state['authentication_status'] = False
 
-    if not credentials["usernames"]:
-        st.error("⚠️ No se encontraron usuarios configurados en los Secrets (ej: [admin]).")
-        st.stop()
+if st.session_state['authentication_status'] is not True:
+    manual_login()
 
-except Exception as e:
-    st.error(f"⚠️ Error cargando configuración: {str(e)}")
-    st.stop()
-
-authenticator = stauth.Authenticate(
-    credentials,
-    cookie_cfg["name"],
-    cookie_cfg["key"],
-    cookie_cfg["expiry_days"]
-)
-
-authenticator.login()
+if st.session_state["authentication_status"]:
+    # ── LOGOUT EN SIDEBAR (Para mantener compatibilidad) ──────────
+    def logout():
+        st.session_state['authentication_status'] = None
+        st.session_state['name'] = None
+        st.session_state['username'] = None
+        st.rerun()
 
 if st.session_state["authentication_status"]:
     # ── SIDEBAR ─────────────────────────────────
