@@ -155,25 +155,45 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- AUTHENTICATION ---
-# Carga ultra-robusta de secretos usando el método nativo de Streamlit
+# Carga de Secretos con Estrategia Plana (Más Robusta en la Nube)
 try:
-    # to_dict() es el método oficial para obtener un diccionario limpio
-    secrets_dict = st.secrets.to_dict()
-    credentials = secrets_dict.get("credentials", {})
-    cookie      = secrets_dict.get("cookie", {})
+    # 1. Definimos los "Secretos Básicos"
+    secrets = st.secrets.to_dict()
     
-    if not credentials or "usernames" not in credentials:
-        st.error("⚠️ Error: No se encontró la sección [credentials.usernames] en tus Secrets.")
+    # 2. Obtenemos datos de Cookie
+    cookie_cfg = secrets.get("cookie", {
+        "name": "chimire_auth_cookie",
+        "key": "chimire_secret_signature",
+        "expiry_days": 30
+    })
+
+    # 3. Construimos el diccionario de Credenciales (Estructura que pide stauth)
+    credentials = {"usernames": {}}
+    
+    # Lista de posibles usuarios en formato plano (admin, usuario1, etc.)
+    # Buscamos claves que sean diccionarios en la raíz de los secretos
+    for key, value in secrets.items():
+        if isinstance(value, dict) and "password" in value:
+            # Agregamos este usuario al sistema de autenticación
+            credentials["usernames"][key] = {
+                "email": value.get("email", ""),
+                "name": value.get("name", key),
+                "password": value["password"]
+            }
+
+    if not credentials["usernames"]:
+        st.error("⚠️ No se encontraron usuarios configurados en los Secrets (ej: [admin]).")
         st.stop()
+
 except Exception as e:
-    st.error(f"⚠️ Error cargando secretos: {str(e)}")
+    st.error(f"⚠️ Error cargando configuración: {str(e)}")
     st.stop()
 
 authenticator = stauth.Authenticate(
     credentials,
-    cookie["name"],
-    cookie["key"],
-    cookie["expiry_days"]
+    cookie_cfg["name"],
+    cookie_cfg["key"],
+    cookie_cfg["expiry_days"]
 )
 
 authenticator.login()
