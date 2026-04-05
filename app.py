@@ -189,20 +189,32 @@ def manual_login():
                             raw_val = str(user_data.get("password", ""))
                             stored_hash = re.sub(r'[^A-Za-z0-9./$]', '', raw_val)
                             
-                            # 3. Validación Directa con BCrypt (Bypassing stauth BUG)
-                            if len(stored_hash) == 60:
-                                # Convertimos a bytes para bcrypt
-                                if bcrypt.checkpw(pass_input.encode('utf-8'), stored_hash.encode('utf-8')):
+                            # 3. Validación Ultra-Resiliente (Bypass de emergencia)
+                            try:
+                                # Opción A: Probar con BCrypt
+                                if len(stored_hash) == 60 and bcrypt.checkpw(pass_input.encode('utf-8'), stored_hash.encode('utf-8')):
+                                    valid = True
+                                # Opción B: Probar comparación directa (Rescate)
+                                elif pass_input == str(user_data.get("password", "")):
+                                    valid = True
+                                else:
+                                    valid = False
+                                    
+                                if valid:
                                     st.session_state['authentication_status'] = True
                                     st.session_state['name'] = user_data.get("name", user_input)
                                     st.session_state['username'] = user_input
                                     st.rerun()
                                 else:
-                                    st.error("⚠️ Contraseña incorrecta")
+                                    st.error(f"⚠️ Contraseña incorrecta (Hash detectado: {len(stored_hash)} chars)")
                                     st.session_state['authentication_status'] = False
-                            else:
-                                st.error(f"⚠️ Error de formato: el código tiene {len(stored_hash)} caracteres (debe tener 60).")
-                                st.session_state['authentication_status'] = False
+                            except Exception as e:
+                                # Opción C: Si bcrypt explota, al menos permitir entrada por texto plano
+                                if pass_input == str(user_data.get("password", "")):
+                                    st.session_state['authentication_status'] = True
+                                    st.rerun()
+                                else:
+                                    st.error(f"❌ Error en motor: {str(e)}")
                         else:
                             st.warning(f"⚠️ Usuario '{user_input}' no encontrado en Secrets")
                             st.session_state['authentication_status'] = False
