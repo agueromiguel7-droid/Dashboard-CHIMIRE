@@ -182,17 +182,24 @@ def manual_login():
                         # 2. Buscar al usuario directamente
                         if user_input in config and isinstance(config[user_input], (dict, st.runtime.secrets.Secrets)):
                             user_data = config[user_input]
-                            stored_hash = user_data.get("password", "")
+                            # Limpieza profunda del hash para evitar espacios o saltos de línea invisibles
+                            stored_hash = str(user_data.get("password", "")).strip().replace("\n", "").replace("\r", "")
                             
-                            # 3. Verificar contraseña contra el hash
-                            if stauth.Hasher.check_pw(stored_hash, pass_input):
-                                st.session_state['authentication_status'] = True
-                                st.session_state['name'] = user_data.get("name", user_input)
-                                st.session_state['username'] = user_input
-                                st.rerun()
-                            else:
-                                st.error("⚠️ Contraseña incorrecta")
+                            # DIAGNÓSTICO: Si el hash no tiene 60 caracteres, informamos al usuario
+                            if len(stored_hash) != 60:
+                                st.error(f"⚠️ El código (hash) detectado en Secrets es inválido (tiene {len(stored_hash)} caracteres, necesita 60).")
+                                st.info("👉 Por favor, asegúrate de copiar el código completo sin saltos de línea.")
                                 st.session_state['authentication_status'] = False
+                            else:
+                                # 3. Verificar contraseña contra el hash limpio
+                                if stauth.Hasher.check_pw(stored_hash, pass_input):
+                                    st.session_state['authentication_status'] = True
+                                    st.session_state['name'] = user_data.get("name", user_input)
+                                    st.session_state['username'] = user_input
+                                    st.rerun()
+                                else:
+                                    st.error("⚠️ Contraseña incorrecta")
+                                    st.session_state['authentication_status'] = False
                         else:
                             st.warning(f"⚠️ Usuario '{user_input}' no encontrado en Secrets")
                             st.session_state['authentication_status'] = False
