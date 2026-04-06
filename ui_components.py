@@ -735,8 +735,12 @@ def render_tab_pozos(datos, escenario_active, texts):
     st.plotly_chart(fig_act, use_container_width=True)
 
     # ── GRÁFICO 2: Pozos_Qo (bd) ──
-    qo_vars = ['Qo_10', 'Qo Esperado (bd)', 'Qo_90']
-    avg_qo = _get_avg_metrics(full_p2, [v for v in qo_vars if v in full_p2.columns])
+    # translate if needed
+    is_en_mode = (texts['metrica'] != 'Métrica')
+    trans_vals = TRANSLATIONS['English']['values']
+    qo_vars_search = [trans_vals.get(v, v) if is_en_mode else v for v in qo_vars]
+    
+    avg_qo = _get_avg_metrics(full_p2, [v for v in qo_vars_search if v in full_p2.columns])
     fig_qo = go.Figure()
     colors_qo = [C['blue1'], C['blue2'], C['orange']]
     names_qo = [texts['val_p10'], texts['val_exp'], texts['val_p90']]
@@ -751,8 +755,8 @@ def render_tab_pozos(datos, escenario_active, texts):
     st.plotly_chart(fig_qo, use_container_width=True)
 
     # ── GRÁFICO 3: Pozos_Qg (Mpcd) ──
-    qg_vars = ['Qg_10', 'Qg Esperado (Mpcd)', 'Qg_90']
-    avg_qg = _get_avg_metrics(full_p2, [v for v in qg_vars if v in full_p2.columns])
+    qg_vars_search = [trans_vals.get(v, v) if is_en_mode else v for v in qg_vars]
+    avg_qg = _get_avg_metrics(full_p2, [v for v in qg_vars_search if v in full_p2.columns])
     fig_qg = go.Figure()
     colors_qg = [C['navy'], C['blue1'], C['blue3']]
     names_qg = ['Qg_10', 'Qg_50', 'Qg_90']
@@ -1023,7 +1027,8 @@ def render_tab_comparacion(datos, texts):
             
             if not row.empty:
                 y = pd.to_numeric(row.iloc[0][ts_f], errors='coerce').fillna(0).values
-                fig_d.add_trace(go.Scatter(x=dates_f, y=y, name=esc, line=dict(color=_SCENARIO_COLORS.get(esc, C['navy']), width=2)))
+                c_color = _SCENARIO_COLORS.get(esc, _SCENARIO_COLORS.get(next((k for k, v in trans_vals.items() if v == esc), esc), C['navy']))
+                fig_d.add_trace(go.Scatter(x=dates_f, y=y, name=esc, line=dict(color=c_color, width=2)))
         _base_layout(fig_d, title_d, height=320)
         fig_d.update_xaxes(title_text='Fecha' if texts['metrica'] == 'Métrica' else 'Date')
         fig_d.update_yaxes(title_text=u_d)
@@ -1037,7 +1042,8 @@ def render_tab_comparacion(datos, texts):
             row = sub[(sub['Variable'] == search_va) & (sub[col_cat] == target_cat)]
             if not row.empty:
                 y = pd.to_numeric(row.iloc[0][ts_f], errors='coerce').fillna(0).values
-                fig_a.add_trace(go.Scatter(x=dates_f, y=y, name=esc, line=dict(color=_SCENARIO_COLORS.get(esc, C['navy']), width=2)))
+                c_color = _SCENARIO_COLORS.get(esc, _SCENARIO_COLORS.get(next((k for k, v in trans_vals.items() if v == esc), esc), C['navy']))
+                fig_a.add_trace(go.Scatter(x=dates_f, y=y, name=esc, line=dict(color=c_color, width=2)))
         _base_layout(fig_a, title_a, height=320)
         fig_a.update_xaxes(title_text='Fecha' if texts['metrica'] == 'Métrica' else 'Date')
         fig_a.update_yaxes(title_text=u_a)
@@ -1046,9 +1052,14 @@ def render_tab_comparacion(datos, texts):
     # 3. BOTTOM LEFT: Annualized CAPEX
     with row2_l:
         pop_label = "Categorías CAPEX" if texts['metrica'] == 'Métrica' else "CAPEX Categories"
+        capex_all = sorted([v for v in current_mpp['Variable'].unique() if 'CAPEX' in str(v).upper()])
+        
+        # Robust selection: if options changed due to lang toggle, reset
+        if "comp_capex_sel" not in st.session_state or not st.session_state["comp_capex_sel"] or not all(e in capex_all for e in st.session_state["comp_capex_sel"]):
+            st.session_state["comp_capex_sel"] = capex_all
+            
         with st.popover(pop_label, use_container_width=True):
-            capex_all = sorted([v for v in current_mpp['Variable'].unique() if 'CAPEX' in str(v).upper()])
-            capex_sel = st.multiselect("Filtrar" if texts['metrica'] == 'Métrica' else "Filter", capex_all, default=capex_all, key="comp_capex_sel")
+            capex_sel = st.multiselect("Filtrar" if texts['metrica'] == 'Métrica' else "Filter", capex_all, key="comp_capex_sel")
         
         fig4 = go.Figure()
         for esc in esc_sel:
@@ -1056,7 +1067,8 @@ def render_tab_comparacion(datos, texts):
             rows = sub[sub['Variable'].isin(capex_sel) & (sub[col_cat] == target_cat)]
             if not rows.empty:
                 y_annual = rows[ts_f].astype(float).sum().groupby(dates_f.year).sum()
-                fig4.add_trace(go.Bar(x=y_annual.index, y=y_annual.values, name=esc, marker_color=_SCENARIO_COLORS.get(esc, C['navy'])))
+                c_color = _SCENARIO_COLORS.get(esc, _SCENARIO_COLORS.get(next((k for k, v in trans_vals.items() if v == esc), esc), C['navy']))
+                fig4.add_trace(go.Bar(x=y_annual.index, y=y_annual.values, name=esc, marker_color=c_color))
         _base_layout(fig4, 'CAPEX Anual' if texts['metrica'] == 'Métrica' else 'Annual CAPEX', height=320)
         fig4.update_yaxes(title_text='MMUSD')
         fig4.update_layout(barmode='group')
@@ -1065,9 +1077,14 @@ def render_tab_comparacion(datos, texts):
     # 4. BOTTOM RIGHT: Annualized OPEX
     with row2_r:
         pop_label = "Categorías OPEX" if texts['metrica'] == 'Métrica' else "OPEX Categories"
+        opex_all = sorted([v for v in current_mpp['Variable'].unique() if 'OPEX' in str(v).upper()])
+        
+        # Robust selection: if options changed due to lang toggle, reset
+        if "comp_opex_sel" not in st.session_state or not st.session_state["comp_opex_sel"] or not all(e in opex_all for e in st.session_state["comp_opex_sel"]):
+            st.session_state["comp_opex_sel"] = opex_all
+            
         with st.popover(pop_label, use_container_width=True):
-            opex_all = sorted([v for v in current_mpp['Variable'].unique() if 'OPEX' in str(v).upper()])
-            opex_sel = st.multiselect("Filtrar" if texts['metrica'] == 'Métrica' else "Filter", opex_all, default=opex_all, key="comp_opex_sel")
+            opex_sel = st.multiselect("Filtrar" if texts['metrica'] == 'Métrica' else "Filter", opex_all, key="comp_opex_sel")
         
         fig5 = go.Figure()
         for esc in esc_sel:
@@ -1075,7 +1092,8 @@ def render_tab_comparacion(datos, texts):
             rows = sub[sub['Variable'].isin(opex_sel) & (sub[col_cat] == target_cat)]
             if not rows.empty:
                 y_annual = rows[ts_f].astype(float).sum().groupby(dates_f.year).sum()
-                fig5.add_trace(go.Bar(x=y_annual.index, y=y_annual.values, name=esc, marker_color=_SCENARIO_COLORS.get(esc, C['navy'])))
+                c_color = _SCENARIO_COLORS.get(esc, _SCENARIO_COLORS.get(next((k for k, v in trans_vals.items() if v == esc), esc), C['navy']))
+                fig5.add_trace(go.Bar(x=y_annual.index, y=y_annual.values, name=esc, marker_color=c_color))
         _base_layout(fig5, 'OPEX Anual' if texts['metrica'] == 'Métrica' else 'Annual OPEX', height=320)
         fig5.update_layout(barmode='group')
         fig5.update_yaxes(title_text='MMUSD')
