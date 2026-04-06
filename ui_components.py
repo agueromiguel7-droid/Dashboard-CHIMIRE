@@ -651,10 +651,13 @@ def render_tab_pozos(datos, escenario_active, texts):
     # ── Pestaña de Resumen y Comparación de Pozos Tipo ──
     st.markdown(f"### {texts['well_mgmt']}")
 
-    # 1. Filtro Discreto de Escenarios (Popover)
-    pop_title = "⚙️ Comparar Escenarios" if texts['metrica'] == 'Métrica' else "⚙️ Compare Scenarios"
-    pop_label = "Seleccionar Escenarios" if texts['metrica'] == 'Métrica' else "Select Scenarios"
-    
+    # 1. Prepare Scenario Options
+    is_en = (texts['metrica'] != 'Métrica')
+    trans_vals = TRANSLATIONS['English']['values']
+    esc_opts = ["Caso Base", "Esc 1", "Esc 2"]
+    if is_en:
+        esc_opts = [trans_vals.get(e, e) for e in esc_opts]
+
     # Robust selection: detect language switch or empty state and reset session state manually
     if "pozos_esc_sel" not in st.session_state or not st.session_state["pozos_esc_sel"] or not all(e in esc_opts for e in st.session_state["pozos_esc_sel"]):
         st.session_state["pozos_esc_sel"] = esc_opts
@@ -993,9 +996,11 @@ def render_tab_comparacion(datos, texts):
     dates_f = dates_all[(dates_all >= pd.Timestamp(fecha_inicio)) & (dates_all <= pd.Timestamp(fecha_fin))]
     current_mpp = all_mpp[all_mpp[col_esc].isin(esc_sel)]
 
-    # --- 2x2 Grid Layout ---
-    row1_l, row1_r = st.columns(2)
-    row2_l, row2_r = st.columns(2)
+    # Translate internal search variables if in English
+    trans_vals = TRANSLATIONS['English']['values']
+    is_en_mode = (texts['metrica'] != 'Métrica')
+    search_vd = trans_vals.get(var_d, var_d) if is_en_mode else var_d
+    search_va = trans_vals.get(var_a, var_a) if is_en_mode else var_a
 
     # 1. TOP LEFT: Daily Production
     with row1_l:
@@ -1006,7 +1011,7 @@ def render_tab_comparacion(datos, texts):
 
         for esc in esc_sel:
             sub = current_mpp[current_mpp[col_esc] == esc]
-            row = sub[(sub['Variable'] == var_d) & (sub[col_cat] == target_cat)]
+            row = sub[(sub['Variable'] == search_vd) & (sub[col_cat] == target_cat)]
             
             if not row.empty:
                 y = pd.to_numeric(row.iloc[0][ts_f], errors='coerce').fillna(0).values
@@ -1021,7 +1026,7 @@ def render_tab_comparacion(datos, texts):
         fig_a = go.Figure()
         for esc in esc_sel:
             sub = current_mpp[current_mpp[col_esc] == esc]
-            row = sub[(sub['Variable'] == var_a) & (sub[col_cat] == target_cat)]
+            row = sub[(sub['Variable'] == search_va) & (sub[col_cat] == target_cat)]
             if not row.empty:
                 y = pd.to_numeric(row.iloc[0][ts_f], errors='coerce').fillna(0).values
                 fig_a.add_trace(go.Scatter(x=dates_f, y=y, name=esc, line=dict(color=_SCENARIO_COLORS.get(esc, C['navy']), width=2)))
