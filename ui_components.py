@@ -735,6 +735,8 @@ def render_tab_pozos(datos, escenario_active, texts):
     st.plotly_chart(fig_act, use_container_width=True)
 
     # ── GRÁFICO 2: Pozos_Qo (bd) ──
+    qo_vars = ['Qo_10', 'Qo Esperado (bd)', 'Qo_90']
+    
     # translate if needed
     is_en_mode = (texts['metrica'] != 'Métrica')
     trans_vals = TRANSLATIONS['English']['values']
@@ -755,6 +757,7 @@ def render_tab_pozos(datos, escenario_active, texts):
     st.plotly_chart(fig_qo, use_container_width=True)
 
     # ── GRÁFICO 3: Pozos_Qg (Mpcd) ──
+    qg_vars = ['Qg_10', 'Qg Esperado (Mpcd)', 'Qg_90']
     qg_vars_search = [trans_vals.get(v, v) if is_en_mode else v for v in qg_vars]
     avg_qg = _get_avg_metrics(full_p2, [v for v in qg_vars_search if v in full_p2.columns])
     fig_qg = go.Figure()
@@ -772,7 +775,8 @@ def render_tab_pozos(datos, escenario_active, texts):
 
     # ── GRÁFICO 4: Pozos_Costo (MMUSD) ──
     cost_vars = ['Costo_Mín', 'Costo Más Probable (MMUSD)', 'Costo_Máx']
-    avg_cost = _get_avg_metrics(full_p2, [v for v in cost_vars if v in full_p2.columns])
+    cost_vars_search = [trans_vals.get(v, v) if is_en_mode else v for v in cost_vars]
+    avg_cost = _get_avg_metrics(full_p2, [v for v in cost_vars_search if v in full_p2.columns])
     fig_cost = go.Figure()
     colors_cost = ['#1A237E', '#3949AB', C['orange']]
     names_cost = ['Costo_Mín', 'Costo_MP', 'Costo_Máx']
