@@ -274,13 +274,17 @@ if st.session_state["authentication_status"]:
         try:
             # Buscar descripción en la hoja DescEscenarios
             df_desc = datos['escenarios']
-            desc_row = df_desc[df_desc['Escenario'] == escenario_selected]
+            col_esc = 'Scenario' if 'Scenario' in df_desc.columns else 'Escenario'
+            desc_row = df_desc[df_desc[col_esc] == escenario_selected]
             if not desc_row.empty:
                 # 1. Imagen centrada y con espacio superior
                 img_path = {
                     "Caso Base": "Escenario Base.png",
+                    "Base Case": "Escenario Base.png",
                     "Esc 1":     "Escenario 1.png",
-                    "Esc 2":     "Escenario 2.png"
+                    "Scenario 1":"Escenario 1.png",
+                    "Esc 2":     "Escenario 2.png",
+                    "Scenario 2":"Escenario 2.png"
                 }.get(escenario_selected, "Escenario Base.png")
 
                 st.markdown("<div style='margin-top:10px'></div>", unsafe_allow_html=True)
@@ -298,7 +302,8 @@ if st.session_state["authentication_status"]:
                         "Scenario 2": "Considers 397 activities, 100 new wells starting drilling in 2025, and the purchase of 3 compressors."
                     }.get(escenario_selected, "Detailed assessment for " + escenario_selected)
                 else:
-                    desc_text = desc_row.iloc[0]['Descripcion']
+                    col_desc = 'Description' if 'Description' in df_desc.columns else 'Descripcion'
+                    desc_text = desc_row.iloc[0][col_desc]
 
                 st.markdown(f"""
                     <div style='background-color:#F0F4F8; padding:8px; border-radius:6px; border:1px solid #D0D7DE; margin-bottom:10px'>
