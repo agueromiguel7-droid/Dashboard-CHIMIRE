@@ -109,6 +109,18 @@ TRANSLATIONS = {
             "NP": "Cum Oil",
             "GP": "Cum Gas",
             
+            # Variables (Pozos (2))
+            "Reactivación": "Reactivation",
+            "Limpieza y Estimulación": "Cleansing and Stimulation",
+            "Cambio de Zona": "Change of Zone",
+            "RaRc": "Workover-Well Service",
+            "Sensillo Selectivo Baja Productividad": "Selective Sensor Low Productivity",
+            "Sencillo Selectivo Media Productividad": "Simple Selective Medium Productivity"
+            "Sensillo Selectivo Alta Productividad": "High Productivity Selective Sensor"
+            "Comingle Baja Productividad": "Comingle Low Productivity"
+            "Comingle Media Productividad": "Comingle Media Productivity"
+            "Comingle Alta Productividad": "Comingle High Productivity"
+
             # Well Types
             "Pozo Vertical": "Vertical Well",
             "Pozo Horizontal": "Horizontal Well",
