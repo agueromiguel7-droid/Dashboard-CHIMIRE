@@ -9,6 +9,7 @@ import plotly.express as px
 import pandas as pd
 import data_processing as dp
 from translations import TRANSLATIONS
+from plotly.subplots import make_subplots
 
 # ──────────────────────────────────────────────
 #  DESIGN SYSTEM
@@ -422,15 +423,51 @@ def render_tab_produccion(datos, escenario, texts):
         label_acum   = f"Gp (MMpc) – {texts['chart_prod']} {texts['accum']} {texts['gas']}" if texts['metrica'] != 'Métrica' else "Gp (MMpc) – Producción Acumulada de Gas"
         unit_d, unit_a = "Mpcd", "MMpc"
 
-    # ── Gráficos de producción LADO A LADO ──────────────────
-    col_diario, col_acum = st.columns(2)
+    # ── Gráficos de Producción y Reservas ──────────────────
+    col_reservas, col_prod = st.columns([1, 1.3])
 
-    with col_diario:
-        fig1 = go.Figure()
+    with col_reservas:
+        reservas_var = "Reservas Aceite" if internal_fluido == "Aceite" else "Reservas Gas"
         col_var = 'Variable'
         col_cat = 'Category' if 'Category' in mpp.columns else 'Categoría'
         is_en = (col_cat == 'Category')
+        search_res = TRANSLATIONS['English']['values'].get(reservas_var, reservas_var) if is_en else reservas_var
         
+        fig_res = go.Figure()
+        cats_res = ['1P', '2P', '3P']
+        colors_res = [C['navy'], C['blue2'], C['blue3']]
+        
+        for i, cat in enumerate(cats_res):
+            row_res = mpp[(mpp[col_var] == search_res) & (mpp[col_cat] == cat)]
+            if not row_res.empty:
+                val = 0.0
+                if ts_cols:
+                    try:
+                        val = float(row_res.iloc[0][ts_cols[0]])
+                    except:
+                        val = 0.0
+                
+                txt_val = f"{val:,.1f}" if val > 0 else ""
+                fig_res.add_trace(go.Bar(
+                    x=[cat], y=[val], name=cat,
+                    marker_color=colors_res[i],
+                    text=[txt_val], textposition='outside',
+                    textfont=dict(size=11, color=C['navy'])
+                ))
+        
+        lbl_res = f"Reservas de {texts['oil'] if internal_fluido=='Aceite' else texts['gas']} ({unit_a})" if texts['metrica'] == 'Métrica' else f"{texts['oil'] if internal_fluido=='Aceite' else texts['gas']} Reserves ({unit_a})"
+        _base_layout(fig_res, lbl_res, height=330)
+        fig_res.update_layout(
+            showlegend=False,
+            margin=dict(l=10, r=10, t=35, b=40),
+            yaxis=dict(autorange=True, rangemode='tozero')
+        )
+        st.plotly_chart(fig_res, use_container_width=True)
+
+    with col_prod:
+        fig_prod = make_subplots(specs=[[{"secondary_y": True}]])
+        
+        # Plot Diaria (left axis)
         for cat, color in [('P10', C['navy']), ('Media', C['blue2']), ('P90', C['orange'])]:
             target_cat = ('Mean' if cat == 'Media' else cat) if is_en else cat
             search_vn = TRANSLATIONS['English']['values'].get(var_diaria, var_diaria) if is_en else var_diaria
@@ -438,32 +475,39 @@ def render_tab_produccion(datos, escenario, texts):
             row_d = mpp[(mpp[col_var] == search_vn) & (mpp[col_cat] == target_cat)]
             if not row_d.empty and ts_filtered:
                 y = row_d.iloc[0][ts_filtered].values
-                fig1.add_trace(go.Scatter(
-                    x=dates_f, y=y, name=cat,
-                    line=dict(color=color, width=2), mode='lines'
-                ))
-        _base_layout(fig1, label_diaria, height=310)
-        fig1.update_xaxes(title_text='Fecha' if texts['metrica'] == 'Métrica' else 'Date', range=xrange)
-        fig1.update_yaxes(title_text=unit_d)
-        st.plotly_chart(fig1, use_container_width=True)
-
-    with col_acum:
-        fig2 = go.Figure()
-        for cat, color in [('P10', C['navy']), ('Media', C['blue2']), ('P90', C['orange'])]:
+                fig_prod.add_trace(go.Scatter(
+                    x=dates_f, y=y, name=f"{cat} ({texts['daily']})",
+                    line=dict(color=color, width=2.5), mode='lines'
+                ), secondary_y=False)
+                
+        # Plot Acumulada (right axis)
+        for cat, color in [('P10', C['navy']), ('Media', C['blue1']), ('P90', '#FF8A65')]:
             target_cat = ('Mean' if cat == 'Media' else cat) if is_en else cat
             search_vn = TRANSLATIONS['English']['values'].get(var_acum, var_acum) if is_en else var_acum
             
             row_a = mpp[(mpp[col_var] == search_vn) & (mpp[col_cat] == target_cat)]
             if not row_a.empty and ts_filtered:
                 y = row_a.iloc[0][ts_filtered].values
-                fig2.add_trace(go.Scatter(
-                    x=dates_f, y=y, name=cat,
-                    line=dict(color=color, width=2), mode='lines'
-                ))
-        _base_layout(fig2, label_acum, height=310)
-        fig2.update_xaxes(title_text='Fecha' if texts['metrica'] == 'Métrica' else 'Date', range=xrange)
-        fig2.update_yaxes(title_text=unit_a)
-        st.plotly_chart(fig2, use_container_width=True)
+                fig_prod.add_trace(go.Scatter(
+                    x=dates_f, y=y, name=f"{cat} ({texts['accum']})",
+                    line=dict(color=color, width=2, dash='dot'), mode='lines'
+                ), secondary_y=True)
+
+        combined_label = f"{var_diaria} y {var_acum} – {texts['chart_prod']}"
+        _base_layout(fig_prod, combined_label, height=330)
+        fig_prod.update_layout(
+            legend=dict(
+                orientation='h',
+                yanchor='top', y=-0.15,
+                xanchor='center', x=0.5,
+                font=dict(size=9),
+                traceorder='normal',
+            ),
+        )
+        fig_prod.update_xaxes(title_text='Fecha' if texts['metrica'] == 'Métrica' else 'Date', range=xrange)
+        fig_prod.update_yaxes(title_text=unit_d, secondary_y=False, showgrid=True, gridcolor=C['grid'])
+        fig_prod.update_yaxes(title_text=unit_a, secondary_y=True, showgrid=False)
+        st.plotly_chart(fig_prod, use_container_width=True)
 
     # ── Fila inferior: CAPEX | OPEX | Cantidad de Pozos Tipo ─
     st.divider()
@@ -1111,15 +1155,15 @@ def render_dashboard(datos, escenario, texts):
 
     with tab1:
         try:
-            render_tab_valoracion(datos, escenario, texts)
-        except Exception as e:
-            st.error(f"Error en Valoración: {e}")
-
-    with tab2:
-        try:
             render_tab_produccion(datos, escenario, texts)
         except Exception as e:
             st.error(f"Error en Producción: {e}")
+
+    with tab2:
+        try:
+            render_tab_valoracion(datos, escenario, texts)
+        except Exception as e:
+            st.error(f"Error en Valoración: {e}")
 
     with tab3: # Ahora es Comparación
         try:
