@@ -948,15 +948,17 @@ def render_tab_comparacion(datos, texts):
     valid_dates = dates_all.dropna()
     d_min, d_max = valid_dates.min().to_pydatetime(), valid_dates.max().to_pydatetime()
     
+    # Robust selection: detect language switch or empty state and reset session state manually
+    # MOVE OUTSIDE POPOVER to ensure it runs even if popover remains closed
+    if "comp_esc_sel" not in st.session_state or not st.session_state["comp_esc_sel"] or not all(e in esc_opts for e in st.session_state["comp_esc_sel"]):
+        st.session_state["comp_esc_sel"] = esc_opts
+        
     # Top Control Bar
     ctrl_a, ctrl_b, ctrl_c = st.columns([3, 1.5, 4.5])
     with ctrl_a:
         pop_esc = "⚙️ Escenarios" if texts['metrica'] == 'Métrica' else "⚙️ Scenarios"
         with st.popover(pop_esc, use_container_width=True):
-            # Robust selection: detect language switch or empty state and reset session state manually
-            if "comp_esc_sel" not in st.session_state or not st.session_state["comp_esc_sel"] or not all(e in esc_opts for e in st.session_state["comp_esc_sel"]):
-                st.session_state["comp_esc_sel"] = esc_opts
-            
+            sel_label = "Seleccionar Escenarios" if texts['metrica'] == 'Métrica' else "Select Scenarios"
             esc_sel = st.multiselect(sel_label, esc_opts, key="comp_esc_sel")
     
     with ctrl_b:
