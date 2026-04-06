@@ -32,10 +32,15 @@ TRANSLATIONS = {
             "Costo_MP": "Cost (MP)",
             "Qo_50": "Qo Mean",
             "Qg_50": "Qg Mean",
-            "Descripción": "Description",
             "Descripción Escenario": "Scenario Description",
             "Información": "Information",
-            "Valor": "Value"
+            "Valor": "Value",
+            "Qo_10": "Qo P10",
+            "Qo Esperado (bd)": "Qo Mean (bd)",
+            "Qo_90": "Qo P90",
+            "Qg_10": "Qg P10",
+            "Qg Esperado (Mpcd)": "Qg Mean (Mpcd)",
+            "Qg_90": "Qg P90"
         },
         "values": {
             # Scenarios

@@ -654,8 +654,16 @@ def render_tab_pozos(datos, escenario_active, texts):
     # 1. Filtro Discreto de Escenarios (Popover)
     pop_title = "⚙️ Comparar Escenarios" if texts['metrica'] == 'Métrica' else "⚙️ Compare Scenarios"
     pop_label = "Seleccionar Escenarios" if texts['metrica'] == 'Métrica' else "Select Scenarios"
+    
+    trans_vals = TRANSLATIONS['English']['values']
+    is_en = (texts['metrica'] != 'Métrica')
+    
     with st.popover(pop_title):
+        # Options must match the translated names if in English
         esc_opts = ["Caso Base", "Esc 1", "Esc 2"]
+        if is_en:
+            esc_opts = [trans_vals.get(e, e) for e in esc_opts]
+            
         esc_sel = st.multiselect(pop_label, esc_opts, default=esc_opts, key="pozos_esc_sel")
 
     if not esc_sel:
@@ -715,8 +723,9 @@ def render_tab_pozos(datos, escenario_active, texts):
         sub = full_p2[full_p2['Escenario_Source'] == esc].set_index(col_pt).reindex(pozo_tipos).fillna(0)
         fig_act.add_trace(go.Bar(
             x=pozo_tipos, y=sub[col_qty], name=esc,
-            marker_color=_SCENARIO_COLORS.get(esc, C['blue2']),
-            text=sub['Cantidad'].astype(int).replace(0, ''),
+            # Handle translated scenario names for colors
+            marker_color=_SCENARIO_COLORS.get(esc, _SCENARIO_COLORS.get(next((k for k, v in trans_vals.items() if v == esc), esc), C['blue2'])),
+            text=sub[col_qty].astype(int).replace(0, ''),
             textposition='outside',
         ))
     _style_left_legend(fig_act, "Cantidad de Actividad por Escenario" if texts['metrica'] == 'Métrica' else "Activity Count per Scenario")
@@ -931,7 +940,8 @@ def render_tab_comparacion(datos, texts):
         return
 
     # Scenario options and multi-select (all by default)
-    esc_opts = sorted(all_mpp['Escenario'].unique().tolist())
+    col_esc = 'Scenario' if 'Scenario' in all_mpp.columns else 'Escenario'
+    esc_opts = sorted(all_mpp[col_esc].unique().tolist())
     
     # ── Header & Global Controls ──────────────────────────────
     st.markdown(f"#### 📊 {texts['comp_scen']}")
@@ -980,7 +990,7 @@ def render_tab_comparacion(datos, texts):
 
     ts_f = [ts_cols[i] for i, d in enumerate(dates_all) if pd.Timestamp(fecha_inicio) <= d <= pd.Timestamp(fecha_fin)]
     dates_f = dates_all[(dates_all >= pd.Timestamp(fecha_inicio)) & (dates_all <= pd.Timestamp(fecha_fin))]
-    current_mpp = all_mpp[all_mpp['Escenario'].isin(esc_sel)]
+    current_mpp = all_mpp[all_mpp[col_esc].isin(esc_sel)]
 
     # --- 2x2 Grid Layout ---
     row1_l, row1_r = st.columns(2)
@@ -989,9 +999,16 @@ def render_tab_comparacion(datos, texts):
     # 1. TOP LEFT: Daily Production
     with row1_l:
         fig_d = go.Figure()
+        col_cat = 'Category' if 'Category' in current_mpp.columns else 'Categoría'
+        is_en = (col_cat == 'Category')
+        target_cat = 'Mean' if is_en else 'Media'
+
         for esc in esc_sel:
-            sub = current_mpp[current_mpp['Escenario'] == esc]
-            row = sub[(sub['Variable'] == var_d) & (sub['Categoría'] == 'Media')]
+            sub = current_mpp[current_mpp[col_esc] == esc]
+            row = sub[(sub['Variable'] == var_d) & (sub['Categoría'] == target_cat if 'Categoría' in sub.columns else sub[col_cat] == target_cat)]
+            # Fix: use the correct column for Category comparison
+            row = sub[(sub['Variable'] == var_d) & (sub[col_cat] == target_cat)]
+            
             if not row.empty:
                 y = pd.to_numeric(row.iloc[0][ts_f], errors='coerce').fillna(0).values
                 fig_d.add_trace(go.Scatter(x=dates_f, y=y, name=esc, line=dict(color=_SCENARIO_COLORS.get(esc, C['navy']), width=2)))
@@ -1004,8 +1021,8 @@ def render_tab_comparacion(datos, texts):
     with row1_r:
         fig_a = go.Figure()
         for esc in esc_sel:
-            sub = current_mpp[current_mpp['Escenario'] == esc]
-            row = sub[(sub['Variable'] == var_a) & (sub['Categoría'] == 'Media')]
+            sub = current_mpp[current_mpp[col_esc] == esc]
+            row = sub[(sub['Variable'] == var_a) & (sub[col_cat] == target_cat)]
             if not row.empty:
                 y = pd.to_numeric(row.iloc[0][ts_f], errors='coerce').fillna(0).values
                 fig_a.add_trace(go.Scatter(x=dates_f, y=y, name=esc, line=dict(color=_SCENARIO_COLORS.get(esc, C['navy']), width=2)))
@@ -1023,8 +1040,8 @@ def render_tab_comparacion(datos, texts):
         
         fig4 = go.Figure()
         for esc in esc_sel:
-            sub = current_mpp[current_mpp['Escenario'] == esc]
-            rows = sub[sub['Variable'].isin(capex_sel) & (sub['Categoría'] == 'Media')]
+            sub = current_mpp[current_mpp[col_esc] == esc]
+            rows = sub[sub['Variable'].isin(capex_sel) & (sub[col_cat] == target_cat)]
             if not rows.empty:
                 y_annual = rows[ts_f].astype(float).sum().groupby(dates_f.year).sum()
                 fig4.add_trace(go.Bar(x=y_annual.index, y=y_annual.values, name=esc, marker_color=_SCENARIO_COLORS.get(esc, C['navy'])))
@@ -1042,8 +1059,8 @@ def render_tab_comparacion(datos, texts):
         
         fig5 = go.Figure()
         for esc in esc_sel:
-            sub = current_mpp[current_mpp['Escenario'] == esc]
-            rows = sub[sub['Variable'].isin(opex_sel) & (sub['Categoría'] == 'Media')]
+            sub = current_mpp[current_mpp[col_esc] == esc]
+            rows = sub[sub['Variable'].isin(opex_sel) & (sub[col_cat] == target_cat)]
             if not rows.empty:
                 y_annual = rows[ts_f].astype(float).sum().groupby(dates_f.year).sum()
                 fig5.add_trace(go.Bar(x=y_annual.index, y=y_annual.values, name=esc, marker_color=_SCENARIO_COLORS.get(esc, C['navy'])))
