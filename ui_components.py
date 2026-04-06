@@ -664,7 +664,12 @@ def render_tab_pozos(datos, escenario_active, texts):
         if is_en:
             esc_opts = [trans_vals.get(e, e) for e in esc_opts]
             
-        esc_sel = st.multiselect(pop_label, esc_opts, default=esc_opts, key="pozos_esc_sel")
+        # Robust selection: if existing state doesn't match current options (e.g. lang switch), fallback to default
+        current_sel = st.session_state.get("pozos_esc_sel", esc_opts)
+        valid_sel = [e for e in current_sel if e in esc_opts]
+        if not valid_sel: valid_sel = esc_opts
+        
+        esc_sel = st.multiselect(pop_label, esc_opts, default=valid_sel, key="pozos_esc_sel")
 
     if not esc_sel:
         st.warning("Seleccione al menos un escenario para visualizar las gráficas." if texts['metrica'] == 'Métrica' else "Select at least one scenario to view the charts.")
@@ -958,7 +963,13 @@ def render_tab_comparacion(datos, texts):
         pop_esc = "⚙️ Escenarios" if texts['metrica'] == 'Métrica' else "⚙️ Scenarios"
         with st.popover(pop_esc, use_container_width=True):
             sel_label = "Seleccionar Escenarios" if texts['metrica'] == 'Métrica' else "Select Scenarios"
-            esc_sel = st.multiselect(sel_label, esc_opts, default=esc_opts, key="comp_esc_sel")
+            
+            # Robust selection: detect language switch by checking if session state matches current options
+            current_sel = st.session_state.get("comp_esc_sel", esc_opts)
+            valid_sel = [e for e in current_sel if e in esc_opts]
+            if not valid_sel: valid_sel = esc_opts
+            
+            esc_sel = st.multiselect(sel_label, esc_opts, default=valid_sel, key="comp_esc_sel")
     
     with ctrl_b:
         fluido = st.radio("Fluido" if texts['metrica'] == 'Métrica' else "Fluid", [texts['oil'], texts['gas']], horizontal=True, key="comp_flu_sel")
@@ -1005,8 +1016,6 @@ def render_tab_comparacion(datos, texts):
 
         for esc in esc_sel:
             sub = current_mpp[current_mpp[col_esc] == esc]
-            row = sub[(sub['Variable'] == var_d) & (sub['Categoría'] == target_cat if 'Categoría' in sub.columns else sub[col_cat] == target_cat)]
-            # Fix: use the correct column for Category comparison
             row = sub[(sub['Variable'] == var_d) & (sub[col_cat] == target_cat)]
             
             if not row.empty:
