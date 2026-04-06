@@ -651,7 +651,11 @@ def render_tab_pozos(datos, escenario_active, texts):
     # ── Pestaña de Resumen y Comparación de Pozos Tipo ──
     st.markdown(f"### {texts['well_mgmt']}")
 
-    # 1. Prepare Scenario Options
+    # 1. Filtro Discreto de Escenarios (Popover)
+    pop_title = "⚙️ Comparar Escenarios" if texts['metrica'] == 'Métrica' else "⚙️ Compare Scenarios"
+    pop_label = "Seleccionar Escenarios" if texts['metrica'] == 'Métrica' else "Select Scenarios"
+
+    # Prepare Scenario Options
     is_en = (texts['metrica'] != 'Métrica')
     trans_vals = TRANSLATIONS['English']['values']
     esc_opts = ["Caso Base", "Esc 1", "Esc 2"]
@@ -995,6 +999,10 @@ def render_tab_comparacion(datos, texts):
     ts_f = [ts_cols[i] for i, d in enumerate(dates_all) if pd.Timestamp(fecha_inicio) <= d <= pd.Timestamp(fecha_fin)]
     dates_f = dates_all[(dates_all >= pd.Timestamp(fecha_inicio)) & (dates_all <= pd.Timestamp(fecha_fin))]
     current_mpp = all_mpp[all_mpp[col_esc].isin(esc_sel)]
+
+    # --- 2x2 Grid Layout ---
+    row1_l, row1_r = st.columns(2)
+    row2_l, row2_r = st.columns(2)
 
     # Translate internal search variables if in English
     trans_vals = TRANSLATIONS['English']['values']
