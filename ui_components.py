@@ -737,7 +737,11 @@ def render_tab_pozos(datos, escenario_active, texts):
     # ── GRÁFICO 2: Pozos_Qo (bd) ──
     qo_vars = ['Qo_10', 'Qo Esperado (bd)', 'Qo_90']
     
-    avg_qo = _get_avg_metrics(full_p2, [v for v in qo_vars if v in full_p2.columns])
+    is_en_mode = (texts['metrica'] != 'Métrica')
+    trans_headers = TRANSLATIONS['English']['headers']
+    qo_vars_search = [trans_headers.get(v, v) if is_en_mode else v for v in qo_vars]
+    
+    avg_qo = _get_avg_metrics(full_p2, [v for v in qo_vars_search if v in full_p2.columns])
     fig_qo = go.Figure()
     colors_qo = [C['blue1'], C['blue2'], C['orange']]
     names_qo = [texts['val_p10'], texts['val_exp'], texts['val_p90']]
@@ -753,7 +757,9 @@ def render_tab_pozos(datos, escenario_active, texts):
 
     # ── GRÁFICO 3: Pozos_Qg (Mpcd) ──
     qg_vars = ['Qg_10', 'Qg Esperado (Mpcd)', 'Qg_90']
-    avg_qg = _get_avg_metrics(full_p2, [v for v in qg_vars if v in full_p2.columns])
+    
+    qg_vars_search = [trans_headers.get(v, v) if is_en_mode else v for v in qg_vars]
+    avg_qg = _get_avg_metrics(full_p2, [v for v in qg_vars_search if v in full_p2.columns])
     fig_qg = go.Figure()
     colors_qg = [C['navy'], C['blue1'], C['blue3']]
     names_qg = ['Qg_10', 'Qg_50', 'Qg_90']
