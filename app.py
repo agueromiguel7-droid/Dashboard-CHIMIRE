@@ -260,8 +260,10 @@ if st.session_state["authentication_status"]:
         lang = st.selectbox("🌐 Idioma / Language", ["Español", "English"])
         st.divider()
 
-        # Carga de datos (necesaria para saber los escenarios en el sidebar)
-        escenarios, datos = dp.load_and_process_data()
+        # Carga de datos
+        escenarios_orig, datos_orig = dp.load_and_process_data()
+        # Aplicar Traducciones de Datos (Nueva Capa Intermedia)
+        escenarios, datos = dp.apply_translations(datos_orig, escenarios_orig, lang)
 
         # Selector de Escenario en el sidebar
         texts_scenario = "Escenario" if lang == "Español" else "Scenario"
@@ -286,14 +288,15 @@ if st.session_state["authentication_status"]:
                 with col_i2:
                     st.image(img_path, use_container_width=True)
 
-                # 2. Descripción traducida
-                # Si el idioma es inglés, usamos traducciones predefinidas
+                # 2. Descripción traducida (mapeamos del escenario traducido al original si es necesario)
+                # Si el idioma es inglés, buscamos por el nombre traducido
                 if lang == "English":
+                    # Mapeo de términos traducidos comunes para descripciones
                     desc_text = {
-                        "Caso Base": "Considers 397 activities, 100 new wells starting drilling in 2025, and the purchase of 3 compressors.",
-                        "Esc 1":     "Considers 304 activities, 50 new wells starting drilling in 2025, and the purchase of 2 compressors.",
-                        "Esc 2":     "Considers 397 activities, 100 new wells starting drilling in 2025, and the purchase of 3 compressors."
-                    }.get(escenario_selected, desc_row.iloc[0]['Descripcion'])
+                        "Base Case": "Considers 397 activities, 100 new wells starting drilling in 2025, and the purchase of 3 compressors.",
+                        "Scenario 1": "Considers 304 activities, 50 new wells starting drilling in 2025, and the purchase of 2 compressors.",
+                        "Scenario 2": "Considers 397 activities, 100 new wells starting drilling in 2025, and the purchase of 3 compressors."
+                    }.get(escenario_selected, "Detailed assessment for " + escenario_selected)
                 else:
                     desc_text = desc_row.iloc[0]['Descripcion']
 

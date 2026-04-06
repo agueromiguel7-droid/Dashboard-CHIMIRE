@@ -1,5 +1,6 @@
 import pandas as pd
 import streamlit as st
+from translations import TRANSLATIONS
 
 @st.cache_data
 def load_and_process_data():
@@ -33,9 +34,43 @@ def load_and_process_data():
     return escenarios_disp, datos
 
 
+def apply_translations(datos, escenarios_disp, lang):
+    """
+    Traduce los DataFrames y la lista de escenarios si el idioma es English.
+    """
+    if lang != "English":
+        return escenarios_disp, datos
+
+    trans = TRANSLATIONS.get("English", {})
+    header_map = trans.get("headers", {})
+    value_map = trans.get("values", {})
+
+    new_datos = {}
+    for sheet_name, df in datos.items():
+        df_copy = df.copy()
+        
+        # 1. Traducir Nombres de Columnas
+        df_copy.columns = [header_map.get(str(c).strip(), str(c).strip()) for c in df_copy.columns]
+        
+        # 2. Traducir Valores en columnas clave (si existen)
+        cat_cols = ['Scenario', 'Variable', 'Category', 'Indicator', 'Asset', 'Grouping', 'Well Type']
+        for col in df_copy.columns:
+            if col in cat_cols:
+                df_copy[col] = df_copy[col].astype(str).map(lambda x: value_map.get(x.strip(), x.strip()))
+        
+        new_datos[sheet_name] = df_copy
+
+    # 3. Traducir la lista de escenarios
+    new_escenarios = [value_map.get(str(e).strip(), str(e).strip()) for e in escenarios_disp]
+
+    return new_escenarios, new_datos
+
+
 def _filter(df, escenario):
-    if 'Escenario' in df.columns:
-        return df[df['Escenario'] == escenario].copy()
+    # Support both "Escenario" (ES) and "Scenario" (EN)
+    col = 'Scenario' if 'Scenario' in df.columns else 'Escenario'
+    if col in df.columns:
+        return df[df[col] == escenario].copy()
     return df.copy()
 
 
@@ -46,16 +81,19 @@ def get_kpi_df(datos, escenario):
 def get_kpi_df_agrupacion(datos, escenario, agrupacion=None):
     """Retorna KPIs de PBI 3 filtrando por escenario y agrupación de precio."""
     df = _filter(datos['pbi3'], escenario)
-    if agrupacion and 'Agrupación' in df.columns:
-        df = df[df['Agrupación'] == agrupacion]
+    # Support both "Agrupación" (ES) and "Grouping" (EN)
+    col_ag = 'Grouping' if 'Grouping' in df.columns else 'Agrupación'
+    if agrupacion and col_ag in df.columns:
+        df = df[df[col_ag] == agrupacion]
     return df
 
 
 def get_agrupacion_options(datos):
     """Lista de valores únicos de Agrupación en PBI 3."""
     df = datos['pbi3']
-    if 'Agrupación' in df.columns:
-        return sorted(df['Agrupación'].dropna().unique().tolist())
+    col_ag = 'Grouping' if 'Grouping' in df.columns else 'Agrupación'
+    if col_ag in df.columns:
+        return sorted(df[col_ag].dropna().unique().tolist())
     return []
 
 
@@ -84,12 +122,22 @@ def get_costs_summary(datos, escenario):
     }
 
     result = {}
+    trans = TRANSLATIONS.get("English", {})
+    val_map = trans.get("values", {})
+    
     for label, var_names in cost_map.items():
         total = 0.0
+        col_var = 'Variable'
+        col_cat = 'Category' if 'Category' in mpp.columns else 'Categoría'
+        is_en = (col_cat == 'Category')
+
         for vn in var_names:
+            # Search for the translated name if in English, otherwise Spanish
+            search_vn = val_map.get(vn.strip(), vn.strip()) if is_en else vn.strip()
+            
             rows = mpp[
-                (mpp['Variable'].str.strip() == vn.strip()) &
-                (mpp['Categoría'] == 'Media')
+                (mpp[col_var].str.strip() == search_vn) &
+                (mpp[col_cat] == ('Mean' if is_en else 'Media'))
             ]
             if not rows.empty:
                 vals = pd.to_numeric(rows.iloc[0][ts_cols], errors='coerce').fillna(0)
