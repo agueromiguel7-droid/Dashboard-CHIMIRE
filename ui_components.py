@@ -8,6 +8,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 import data_processing as dp
+from translations import TRANSLATIONS
 
 # ──────────────────────────────────────────────
 #  DESIGN SYSTEM
@@ -105,10 +106,21 @@ def render_tab_valoracion(datos, escenario, texts):
     df = dp.get_kpi_df_agrupacion(datos, escenario, agrupacion)
 
     def _lookup(keyword):
-        if 'Indicador' not in df.columns or 'Media' not in df.columns:
+        # Determine current column names (Indicator/Media vs Indicador/Media)
+        col_ind = 'Indicator' if 'Indicator' in df.columns else 'Indicador'
+        col_val = 'Mean'      if 'Mean'      in df.columns else 'Media'
+
+        if col_ind not in df.columns or col_val not in df.columns:
             return 0.0
-        mask = df['Indicador'].astype(str).str.contains(keyword, case=False, na=False)
-        return round(float(df.loc[mask, 'Media'].iloc[0]), 2) if mask.any() else 0.0
+        
+        # Translate keyword if in English
+        search_term = keyword
+        if col_ind == 'Indicator':
+            # Use English keyword mapping from translations.py if available
+            search_term = TRANSLATIONS['English']['keywords'].get(keyword, keyword)
+            
+        mask = df[col_ind].astype(str).str.contains(search_term, case=False, na=False)
+        return round(float(df.loc[mask, col_val].iloc[0]), 2) if mask.any() else 0.0
 
     vpn = _lookup('neto 15')
     vpi = _lookup('inversión')
@@ -170,26 +182,34 @@ def render_tab_valoracion(datos, escenario, texts):
         pozos_df = dp.get_pozos_df(datos, escenario)
         if not pozos_df.empty:
             show_map = {
+                'Well Type': 'WELL TYPE',
                 'Pozo Tipo': 'POZO TIPO',
+                'Count':     'COUNT',
                 'Cantidad':  'CANT.',
+                'Cost_MP':   'COST (MMUSD)',
                 'Costo_MP':  'COSTO (MUSD)',
+                'Qo_Mean':   'QO EXP.',
                 'Qo_50':     'QO ESP.',
+                'Qg_Mean':   'QG EXP.',
                 'Qg_50':     'QG ESP.',
             }
             avail = [c for c in show_map if c in pozos_df.columns]
-            tbl = pozos_df[avail].dropna(subset=['Pozo Tipo']).rename(columns=show_map).copy()
+            tbl = pozos_df[avail].dropna(subset=[avail[0]]).rename(columns=show_map).copy()
 
             p2 = dp.get_pozos2_df(datos, escenario)
             np_map = {}; gp_map = {}
-            if not p2.empty and 'Pozo Tipo' in p2.columns:
-                for _, r in p2.dropna(subset=['Pozo Tipo']).iterrows():
-                    pt  = r['Pozo Tipo']
+            col_pt = 'Well Type' if 'Well Type' in p2.columns else 'Pozo Tipo'
+            if not p2.empty and col_pt in p2.columns:
+                for _, r in p2.dropna(subset=[col_pt]).iterrows():
+                    pt  = r[col_pt]
                     npc = [c for c in p2.columns if 'Np' in str(c)]
                     gpc = [c for c in p2.columns if 'Gp' in str(c)]
                     if npc: np_map[pt] = round(float(r[npc[0]]), 1)
                     if gpc: gp_map[pt] = round(float(r[gpc[0]]), 1)
-            tbl['NP'] = tbl['POZO TIPO'].map(np_map).fillna(0.0)
-            tbl['GP'] = tbl['POZO TIPO'].map(gp_map).fillna(0.0)
+            
+            p_label = 'WELL TYPE' if 'WELL TYPE' in tbl.columns else 'POZO TIPO'
+            tbl['NP'] = tbl[p_label].map(np_map).fillna(0.0)
+            tbl['GP'] = tbl[p_label].map(gp_map).fillna(0.0)
 
             # Estilo de tabla "Premium"
             st.markdown(f"""
@@ -205,8 +225,8 @@ def render_tab_valoracion(datos, escenario, texts):
 
             st.dataframe(
                 tbl.style.format(
-                    {c: '{:,.1f}' for c in tbl.columns if c != 'POZO TIPO'}, na_rep='–'
-                ).set_properties(subset=['POZO TIPO'], **{'font-weight': 'bold', 'color': C['navy']})
+                    {c: '{:,.1f}' for c in tbl.columns if c != p_label}, na_rep='–'
+                ).set_properties(subset=[p_label], **{'font-weight': 'bold', 'color': C['navy']})
                 .set_table_styles([
                     {'selector': 'th', 'props': [('background-color', '#F0F2F6'), ('color', '#5F6B7A'), ('font-weight', '700'), ('text-transform', 'uppercase'), ('font-size', '10px'), ('letter-spacing', '0.5px')]},
                     {'selector': 'td', 'props': [('padding', '10px')]}
@@ -246,9 +266,16 @@ def render_tab_valoracion(datos, escenario, texts):
             opex_vars  = [v for v in mpp['Variable'].dropna().unique() if 'OPEX'  in str(v).upper()]
 
             def _sv(vlist, cat='Media'):
+                # Handle categories and variable column names
+                target_cat = TRANSLATIONS['English']['values'].get(cat, cat) if 'Category' in mpp.columns else cat
+                col_var = 'Variable'
+                col_cat = 'Category' if 'Category' in mpp.columns else 'Categoría'
+
                 s = pd.Series(0.0, index=ts_filtered)
                 for vn in vlist:
-                    r = mpp[(mpp['Variable'] == vn) & (mpp['Categoría'] == cat)]
+                    # Translate vn for English mode
+                    search_vn = TRANSLATIONS['English']['values'].get(vn, vn) if 'Category' in mpp.columns else vn
+                    r = mpp[(mpp[col_var] == search_vn) & (mpp[col_cat] == target_cat)]
                     if not r.empty:
                         s += pd.to_numeric(r.iloc[0][ts_filtered], errors='coerce').fillna(0)
                 return s
@@ -305,8 +332,15 @@ def _get_timeseries(mpp_df, variable, categories):
     """Extrae una dict {cat: pd.Series of dates→values} para la variable dada."""
     ts_cols = [c for c in mpp_df.columns if str(c).startswith('2')]
     result = {}
+    col_var = 'Variable'
+    col_cat = 'Category' if 'Category' in mpp_df.columns else 'Categoría'
+    is_en = (col_cat == 'Category')
+    
     for cat in categories:
-        row = mpp_df[(mpp_df['Variable'] == variable) & (mpp_df['Categoría'] == cat)]
+        target_cat = TRANSLATIONS['English']['values'].get(cat, cat) if is_en else cat
+        search_vn = TRANSLATIONS['English']['values'].get(variable, variable) if is_en else variable
+        
+        row = mpp_df[(mpp_df[col_var] == search_vn) & (mpp_df[col_cat] == target_cat)]
         if not row.empty:
             series = row.iloc[0][ts_cols]
             # Convertir fechas string a datetime
@@ -393,8 +427,15 @@ def render_tab_produccion(datos, escenario, texts):
 
     with col_diario:
         fig1 = go.Figure()
+        col_var = 'Variable'
+        col_cat = 'Category' if 'Category' in mpp.columns else 'Categoría'
+        is_en = (col_cat == 'Category')
+        
         for cat, color in [('P10', C['navy']), ('Media', C['blue2']), ('P90', C['orange'])]:
-            row_d = mpp[(mpp['Variable'] == var_diaria) & (mpp['Categoría'] == cat)]
+            target_cat = ('Mean' if cat == 'Media' else cat) if is_en else cat
+            search_vn = TRANSLATIONS['English']['values'].get(var_diaria, var_diaria) if is_en else var_diaria
+            
+            row_d = mpp[(mpp[col_var] == search_vn) & (mpp[col_cat] == target_cat)]
             if not row_d.empty and ts_filtered:
                 y = row_d.iloc[0][ts_filtered].values
                 fig1.add_trace(go.Scatter(
@@ -409,7 +450,10 @@ def render_tab_produccion(datos, escenario, texts):
     with col_acum:
         fig2 = go.Figure()
         for cat, color in [('P10', C['navy']), ('Media', C['blue2']), ('P90', C['orange'])]:
-            row_a = mpp[(mpp['Variable'] == var_acum) & (mpp['Categoría'] == cat)]
+            target_cat = ('Mean' if cat == 'Media' else cat) if is_en else cat
+            search_vn = TRANSLATIONS['English']['values'].get(var_acum, var_acum) if is_en else var_acum
+            
+            row_a = mpp[(mpp[col_var] == search_vn) & (mpp[col_cat] == target_cat)]
             if not row_a.empty and ts_filtered:
                 y = row_a.iloc[0][ts_filtered].values
                 fig2.add_trace(go.Scatter(
@@ -430,7 +474,14 @@ def render_tab_produccion(datos, escenario, texts):
 
     # ─── helper: build annual stacked series filtered to date range ──────
     def _annual_series(var_name, cat='Media'):
-        rows = mpp[(mpp['Variable'] == var_name) & (mpp['Categoría'] == cat)]
+        col_var = 'Variable'
+        col_cat = 'Category' if 'Category' in mpp.columns else 'Categoría'
+        is_en = (col_cat == 'Category')
+        
+        target_cat = ('Mean' if cat == 'Media' else cat) if is_en else cat
+        search_vn = TRANSLATIONS['English']['values'].get(var_name, var_name) if is_en else var_name
+        
+        rows = mpp[(mpp[col_var] == search_vn) & (mpp[col_cat] == target_cat)]
         if rows.empty or not ts_filtered:
             return pd.Series(dtype=float)
         y = rows.iloc[0][ts_filtered].values
@@ -567,12 +618,15 @@ def render_tab_produccion(datos, escenario, texts):
             f"text-transform:uppercase;letter-spacing:.5px;margin:0 0 4px 0'>"
             f"Cantidad de Actividad</p>", unsafe_allow_html=True
         )
-        if not pozos2.empty and 'Pozo Tipo' in pozos2.columns and 'Cantidad' in pozos2.columns:
-            total = int(pozos2['Cantidad'].sum())
-            txt5 = [str(int(v)) if v > 0 else "" for v in pozos2['Cantidad']]
+        col_pt  = 'Well Type' if 'Well Type' in pozos2.columns else 'Pozo Tipo'
+        col_qty = 'Count'     if 'Count'     in pozos2.columns else 'Cantidad'
+        
+        if not pozos2.empty and col_pt in pozos2.columns and col_qty in pozos2.columns:
+            total = int(pozos2[col_qty].sum())
+            txt5 = [str(int(v)) if v > 0 else "" for v in pozos2[col_qty]]
             fig5 = go.Figure(go.Bar(
-                x=pozos2['Pozo Tipo'],
-                y=pozos2['Cantidad'],
+                x=pozos2[col_pt],
+                y=pozos2[col_qty],
                 marker_color=C['blue2'],
                 text=txt5,
                 textposition='outside',
@@ -622,7 +676,8 @@ def render_tab_pozos(datos, escenario_active, texts):
         return
 
     full_p2 = pd.concat(all_p2)
-    pozo_tipos = sorted(full_p2['Pozo Tipo'].dropna().unique())
+    col_pt = 'Well Type' if 'Well Type' in full_p2.columns else 'Pozo Tipo'
+    pozo_tipos = sorted(full_p2[col_pt].dropna().unique())
 
     # Función auxiliar para formatear leyendas a la izquierda
     def _style_left_legend(fig, title):
@@ -648,15 +703,18 @@ def render_tab_pozos(datos, escenario_active, texts):
 
     def _get_avg_metrics(df_full, var_cols):
         # Promedia las métricas por Pozo Tipo entre los escenarios seleccionados
-        sub = df_full[['Pozo Tipo'] + var_cols].groupby('Pozo Tipo').mean().reindex(pozo_tipos).fillna(0)
+        col_pt = 'Well Type' if 'Well Type' in df_full.columns else 'Pozo Tipo'
+        sub = df_full[[col_pt] + var_cols].groupby(col_pt).mean().reindex(pozo_tipos).fillna(0)
         return sub
 
     # ── GRÁFICO 1: Cantidad de Actividad por Escenario ──
     fig_act = go.Figure()
     for esc in esc_sel:
-        sub = full_p2[full_p2['Escenario_Source'] == esc].set_index('Pozo Tipo').reindex(pozo_tipos).fillna(0)
+        col_pt = 'Well Type' if 'Well Type' in full_p2.columns else 'Pozo Tipo'
+        col_qty = 'Count'     if 'Count'     in full_p2.columns else 'Cantidad'
+        sub = full_p2[full_p2['Escenario_Source'] == esc].set_index(col_pt).reindex(pozo_tipos).fillna(0)
         fig_act.add_trace(go.Bar(
-            x=pozo_tipos, y=sub['Cantidad'], name=esc,
+            x=pozo_tipos, y=sub[col_qty], name=esc,
             marker_color=_SCENARIO_COLORS.get(esc, C['blue2']),
             text=sub['Cantidad'].astype(int).replace(0, ''),
             textposition='outside',
@@ -742,6 +800,9 @@ def render_tab_corner(datos, escenario, texts):
 
     st.markdown(f"### 🏁 {texts['corner_title']}")
 
+    col_ind = 'Indicator' if 'Indicator' in df.columns else 'Indicador'
+    col_act = 'Asset'     if 'Asset'     in df.columns else 'Activo'
+
     if df.empty:
         st.warning("Sin datos de Corner para el escenario seleccionado." if texts['metrica'] == 'Métrica' else "No Corner data for this scenario.")
         return
@@ -754,12 +815,15 @@ def render_tab_corner(datos, escenario, texts):
         return
 
     # Selector de Indicador
-    if 'Indicador' in df.columns:
-        indicadores = df['Indicador'].dropna().unique().tolist()
+    if col_ind in df.columns:
+        indicadores = df[col_ind].dropna().unique().tolist()
+        # Find default indicator ("presente neto" or translated "net present")
+        search_key = TRANSLATIONS['English']['keywords'].get('neto 15', 'neto 15') if col_ind == 'Indicator' else 'presente neto'
+        
         ind_sel = st.selectbox("Indicador" if texts['metrica'] == 'Métrica' else "Indicator", indicadores,
                                index=next((i for i,v in enumerate(indicadores)
-                                           if 'presente neto' in str(v).lower()), 0))
-        row = df[df['Indicador'] == ind_sel]
+                                           if search_key.lower() in str(v).lower()), 0))
+        row = df[df[col_ind] == ind_sel]
     else:
         row = df
         ind_sel = "Indicador"
@@ -788,8 +852,8 @@ def render_tab_corner(datos, escenario, texts):
     # ── Grid para las dos tablas lado a lado ──
     col1, col2 = st.columns(2)
     
-    # Obtener los valores únicos de Activo (ej. PDVSA 30%, PDVSA 70%)
-    activos = sorted(df['Activo'].dropna().unique().tolist())
+    # Obtener los valores únicos de Activo
+    activos = sorted(df[col_act].dropna().unique().tolist())
     
     for i, active_type in enumerate(activos):
         # Seleccionar la columna para mostrar (col1 o col2)
@@ -797,7 +861,7 @@ def render_tab_corner(datos, escenario, texts):
         
         with target_col:
             # Filtrar por Indicador y por el Activo específico
-            sub_df = df[(df['Indicador'] == ind_sel) & (df['Activo'] == active_type)]
+            sub_df = df[(df[col_ind] == ind_sel) & (df[col_act] == active_type)]
             
             if sub_df.empty:
                 st.info(f"Sin datos para {active_type}" if texts['metrica'] == 'Métrica' else f"No data for {active_type}")
