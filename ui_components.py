@@ -655,21 +655,12 @@ def render_tab_pozos(datos, escenario_active, texts):
     pop_title = "⚙️ Comparar Escenarios" if texts['metrica'] == 'Métrica' else "⚙️ Compare Scenarios"
     pop_label = "Seleccionar Escenarios" if texts['metrica'] == 'Métrica' else "Select Scenarios"
     
-    trans_vals = TRANSLATIONS['English']['values']
-    is_en = (texts['metrica'] != 'Métrica')
-    
-    with st.popover(pop_title):
-        # Options must match the translated names if in English
-        esc_opts = ["Caso Base", "Esc 1", "Esc 2"]
-        if is_en:
-            esc_opts = [trans_vals.get(e, e) for e in esc_opts]
-            
-        # Robust selection: if existing state doesn't match current options (e.g. lang switch), fallback to default
-        current_sel = st.session_state.get("pozos_esc_sel", esc_opts)
-        valid_sel = [e for e in current_sel if e in esc_opts]
-        if not valid_sel: valid_sel = esc_opts
+    # Robust selection: detect language switch or empty state and reset session state manually
+    if "pozos_esc_sel" not in st.session_state or not st.session_state["pozos_esc_sel"] or not all(e in esc_opts for e in st.session_state["pozos_esc_sel"]):
+        st.session_state["pozos_esc_sel"] = esc_opts
         
-        esc_sel = st.multiselect(pop_label, esc_opts, default=valid_sel, key="pozos_esc_sel")
+    with st.popover(pop_title):
+        esc_sel = st.multiselect(pop_label, esc_opts, key="pozos_esc_sel")
 
     if not esc_sel:
         st.warning("Seleccione al menos un escenario para visualizar las gráficas." if texts['metrica'] == 'Métrica' else "Select at least one scenario to view the charts.")
@@ -962,14 +953,11 @@ def render_tab_comparacion(datos, texts):
     with ctrl_a:
         pop_esc = "⚙️ Escenarios" if texts['metrica'] == 'Métrica' else "⚙️ Scenarios"
         with st.popover(pop_esc, use_container_width=True):
-            sel_label = "Seleccionar Escenarios" if texts['metrica'] == 'Métrica' else "Select Scenarios"
+            # Robust selection: detect language switch or empty state and reset session state manually
+            if "comp_esc_sel" not in st.session_state or not st.session_state["comp_esc_sel"] or not all(e in esc_opts for e in st.session_state["comp_esc_sel"]):
+                st.session_state["comp_esc_sel"] = esc_opts
             
-            # Robust selection: detect language switch by checking if session state matches current options
-            current_sel = st.session_state.get("comp_esc_sel", esc_opts)
-            valid_sel = [e for e in current_sel if e in esc_opts]
-            if not valid_sel: valid_sel = esc_opts
-            
-            esc_sel = st.multiselect(sel_label, esc_opts, default=valid_sel, key="comp_esc_sel")
+            esc_sel = st.multiselect(sel_label, esc_opts, key="comp_esc_sel")
     
     with ctrl_b:
         fluido = st.radio("Fluido" if texts['metrica'] == 'Métrica' else "Fluid", [texts['oil'], texts['gas']], horizontal=True, key="comp_flu_sel")
