@@ -559,12 +559,23 @@ def render_tab_produccion(datos, escenario, texts):
         all_capex = sorted(set(str(v).strip() for v in mpp['Variable'].dropna().unique()
                                if 'CAPEX' in str(v).upper() or 'Capex' in str(v)))
 
+        # Use language-specific keys to avoid Streamlit value/options mismatch on switch
+        capex_key = "capex_sel_en" if texts['metrica'] != 'Métrica' else "capex_sel_es"
+        
         # Initialize session state default (first run only)
-        if 'capex_sel' not in st.session_state:
-            st.session_state['capex_sel'] = all_capex[:] if all_capex else []
+        if capex_key not in st.session_state:
+            st.session_state[capex_key] = all_capex[:] if all_capex else []
 
         # Read current selection (updated after user interacts with expander)
-        capex_sel = st.session_state.get('capex_sel', all_capex[:])
+        capex_sel = st.session_state.get(capex_key, all_capex[:])
+        
+        # Fallback: ensure no stale invalid selection ruins the widget
+        valid_capex_sel = [x for x in capex_sel if x in all_capex]
+        if len(valid_capex_sel) == 0 and len(all_capex) > 0:
+            valid_capex_sel = all_capex[:]
+            st.session_state[capex_key] = valid_capex_sel
+            
+        capex_sel = valid_capex_sel
 
         # ── Título del bloque ──
         st.markdown(
@@ -598,9 +609,9 @@ def render_tab_produccion(datos, escenario, texts):
         # ── Selector desplegable DEBAJO del gráfico ──
         with st.expander("▾ Filtrar tipos de CAPEX", expanded=False):
             st.multiselect(
-                "Tipos de CAPEX", all_capex,
+                "Tipos de CAPEX" if texts['metrica'] == 'Métrica' else "CAPEX Types", all_capex,
                 default=capex_sel,
-                key="capex_sel",
+                key=capex_key,
                 label_visibility="collapsed"
             )
 
@@ -609,12 +620,22 @@ def render_tab_produccion(datos, escenario, texts):
         all_opex = sorted(set(str(v).strip() for v in mpp['Variable'].dropna().unique()
                               if 'OPEX' in str(v).upper() or 'Opex' in str(v)))
 
+        opex_key = "opex_sel_en" if texts['metrica'] != 'Métrica' else "opex_sel_es"
+
         # Initialize session state default (first run only)
-        if 'opex_sel' not in st.session_state:
-            st.session_state['opex_sel'] = all_opex[:] if all_opex else []
+        if opex_key not in st.session_state:
+            st.session_state[opex_key] = all_opex[:] if all_opex else []
 
         # Read current selection
-        opex_sel = st.session_state.get('opex_sel', all_opex[:])
+        opex_sel = st.session_state.get(opex_key, all_opex[:])
+        
+        # Fallback: ensure no stale invalid selection ruins the widget
+        valid_opex_sel = [x for x in opex_sel if x in all_opex]
+        if len(valid_opex_sel) == 0 and len(all_opex) > 0:
+            valid_opex_sel = all_opex[:]
+            st.session_state[opex_key] = valid_opex_sel
+            
+        opex_sel = valid_opex_sel
 
         # ── Título del bloque ──
         st.markdown(
@@ -648,9 +669,9 @@ def render_tab_produccion(datos, escenario, texts):
         # ── Selector desplegable DEBAJO del gráfico ──
         with st.expander("▾ Filtrar tipos de OPEX", expanded=False):
             st.multiselect(
-                "Tipos de OPEX", all_opex,
+                "Tipos de OPEX" if texts['metrica'] == 'Métrica' else "OPEX Types", all_opex,
                 default=opex_sel,
-                key="opex_sel",
+                key=opex_key,
                 label_visibility="collapsed"
             )
 

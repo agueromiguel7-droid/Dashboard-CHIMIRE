@@ -296,10 +296,14 @@ if st.session_state["authentication_status"]:
                 # 2. Descripción traducida (mapeamos del escenario traducido al original si es necesario)
                 # Si el idioma es inglés, buscamos por el nombre traducido
                 if lang == "English":
-                    # Use centralized translations for English descriptions
-                    # Added .strip() to handle potential whitespace from Excel mapping
-                    en_descs = TRANSLATIONS.get("English", {}).get("descriptions", {})
-                    desc_text = en_descs.get(escenario_selected.strip(), "Detailed assessment for " + escenario_selected)
+                    # Resilient fallback in case Streamlit caches the older version of translations.py
+                    fallback_descs = {
+                        "Base Case": "Approved development plan considering: 211 activities and the purchase of 3 compressors.",
+                        "Scenario 1": "Considers 304 activities, 50 new wells starting drilling in 2025, and the purchase of 2 compressors.",
+                        "Scenario 2": "Considers 397 activities, 100 new wells starting drilling in 2025, and the purchase of 3 compressors."
+                    }
+                    en_descs = TRANSLATIONS.get("English", {}).get("descriptions", fallback_descs)
+                    desc_text = en_descs.get(escenario_selected.strip(), fallback_descs.get(escenario_selected.strip(), "Detailed assessment for " + escenario_selected))
                 else:
                     col_desc = 'Description' if 'Description' in df_desc.columns else 'Descripcion'
                     desc_text = desc_row.iloc[0][col_desc]
