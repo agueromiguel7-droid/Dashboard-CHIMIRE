@@ -2,6 +2,7 @@ import streamlit as st
 import streamlit_authenticator as stauth
 import data_processing as dp
 import ui_components as ui
+from translations import TRANSLATIONS
 
 # --- PAGE CONFIG ---
 st.set_page_config(
@@ -295,12 +296,10 @@ if st.session_state["authentication_status"]:
                 # 2. Descripción traducida (mapeamos del escenario traducido al original si es necesario)
                 # Si el idioma es inglés, buscamos por el nombre traducido
                 if lang == "English":
-                    # Mapeo de términos traducidos comunes para descripciones
-                    desc_text = {
-                        "Base Case": "Considers 397 activities, 100 new wells starting drilling in 2025, and the purchase of 3 compressors.",
-                        "Scenario 1": "Considers 304 activities, 50 new wells starting drilling in 2025, and the purchase of 2 compressors.",
-                        "Scenario 2": "Considers 397 activities, 100 new wells starting drilling in 2025, and the purchase of 3 compressors."
-                    }.get(escenario_selected, "Detailed assessment for " + escenario_selected)
+                    # Use centralized translations for English descriptions
+                    desc_text = TRANSLATIONS.get("English", {}).get("descriptions", {}).get(
+                        escenario_selected, "Detailed assessment for " + escenario_selected
+                    )
                 else:
                     col_desc = 'Description' if 'Description' in df_desc.columns else 'Descripcion'
                     desc_text = desc_row.iloc[0][col_desc]

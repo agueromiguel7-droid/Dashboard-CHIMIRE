@@ -140,6 +140,11 @@ TRANSLATIONS = {
             "beneficio": "benefit",
             "Aceite": "Oil",
             "Gas": "Gas"
+        },
+        "descriptions": {
+            "Base Case": "Approved development plan considering: 211 activities and the purchase of 3 compressors.",
+            "Scenario 1": "Considers 304 activities, 50 new wells starting drilling in 2025, and the purchase of 2 compressors.",
+            "Scenario 2": "Considers 397 activities, 100 new wells starting drilling in 2025, and the purchase of 3 compressors."
         }
     }
 }
