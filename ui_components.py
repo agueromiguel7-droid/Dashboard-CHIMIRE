@@ -1187,37 +1187,227 @@ def render_tab_comparacion(datos, texts):
         st.plotly_chart(fig5, use_container_width=True)
 
 
+
+def render_tab_kpi_intervenciones(datos, texts, lang):
+    import plotly.graph_objects as go
+    import pandas as pd
+    from translations import TRANSLATIONS
+    
+    is_en = (lang == 'English')
+    
+    # Textos locales
+    t_num_int = "No de Intervenciones" if not is_en else "Number of Interventions"
+    t_part = "Porcentaje de Participación" if not is_en else "Participation Percentage"
+    t_kpi_title = "KPI, Intervenciones y Np" if not is_en else "KPI, Interventions, and Np"
+    t_bubble_desc = "<b>Valor</b> = No Intervenciones, <b>Media</b> = KPI Promedio, <b>Máx Acumulado</b> = Np" if not is_en else "<b>Value</b> = Number of Interventions, <b>Mean</b> = Average KPI, <b>Max Cumulative</b> = Np"
+    t_ind_boe_36 = "Indicadores por Barril (36 USD/boe)" if not is_en else "Indicators per Barrel (36 USD/boe)"
+    t_ind_boe_50 = "Indicadores por Barril (50 USD/boe)" if not is_en else "Indicators per Barrel (50 USD/boe)"
+    t_total = "Total" if not is_en else "Total"
+    
+    pbi3 = datos.get('pbi3', pd.DataFrame())
+    pozos2 = datos.get('pozos2', pd.DataFrame())
+    mpp = datos.get('mpp', pd.DataFrame())
+    desc_df = datos.get('escenarios', pd.DataFrame())
+    
+    if pbi3.empty or pozos2.empty or mpp.empty:
+        st.warning("Faltan datos necesarios para mostrar esta pestaña.")
+        return
+
+    col_esc_pbi3 = 'Scenario' if 'Scenario' in pbi3.columns else 'Escenario'
+    escs_available = pbi3[col_esc_pbi3].dropna().unique().tolist()
+    
+    col_ind = 'Indicator' if 'Indicator' in pbi3.columns else 'Indicador'
+    kpis_all = sorted(pbi3[col_ind].dropna().unique().tolist())
+    
+    col_act = 'Asset' if 'Asset' in pbi3.columns else 'Activo'
+    activos_all = pbi3[col_act].dropna().unique().tolist()
+    
+    col_f, col_g = st.columns([1, 3])
+    
+    with col_f:
+        st.markdown(f"<p style='font-size:12px;font-weight:600;color:{C['navy']}'>{t_part}</p>", unsafe_allow_html=True)
+        sel_activo = st.radio("Participación", options=activos_all, index=0, label_visibility="collapsed")
+        
+        st.markdown(f"<div style='margin-top:15px'></div>", unsafe_allow_html=True)
+        st.markdown(f"<p style='font-size:12px;font-weight:600;color:{C['navy']}'>KPI</p>", unsafe_allow_html=True)
+        sel_kpi = st.radio("KPI a graficar", options=kpis_all, index=1 if len(kpis_all) > 1 else 0, label_visibility="collapsed")
+        
+    with col_g:
+        col_esc_p2 = 'Scenario' if 'Scenario' in pozos2.columns else 'Escenario'
+        col_cant_p2 = 'Quantity' if 'Quantity' in pozos2.columns else 'Cantidad'
+        if col_cant_p2 in pozos2.columns and col_esc_p2 in pozos2.columns:
+            intervenciones = pozos2.groupby(col_esc_p2)[col_cant_p2].sum().to_dict()
+        else:
+            intervenciones = {e: 0 for e in escs_available}
+            
+        col_esc_mpp = 'Scenario' if 'Scenario' in mpp.columns else 'Escenario'
+        col_var_mpp = 'Variable' if 'Variable' in mpp.columns else 'Variable'
+        col_cat_mpp = 'Category' if 'Category' in mpp.columns else 'Categoría'
+        
+        np_sizes = {}
+        for esc in escs_available:
+            sub = mpp[(mpp[col_esc_mpp] == esc) & (mpp[col_var_mpp] == 'Np') & (mpp[col_cat_mpp].isin(['Media', 'P50', 'Mean', 'Expected']))]
+            val = 0
+            if not sub.empty:
+                numeric_vals = pd.to_numeric(sub.iloc[0], errors='coerce').dropna()
+                val = numeric_vals.max() if not numeric_vals.empty else 100
+            np_sizes[esc] = val if val > 0 else 100
+
+        col_val_pbi3 = 'Mean' if 'Mean' in pbi3.columns else 'Media'
+        kpi_y = {}
+        for esc in escs_available:
+            sub = pbi3[(pbi3[col_esc_pbi3] == esc) & (pbi3[col_act] == sel_activo) & (pbi3[col_ind] == sel_kpi)]
+            val = sub[col_val_pbi3].mean() if not sub.empty else 0
+            kpi_y[esc] = val
+
+        fig_scatter = go.Figure()
+        for esc in escs_available:
+            c_color = _SCENARIO_COLORS.get(esc, _SCENARIO_COLORS.get(next((k for k, v in TRANSLATIONS.get('English', {}).get('values', {}).items() if v == esc), esc), C['navy']))
+            fig_scatter.add_trace(go.Scatter(
+                x=[intervenciones.get(esc, 0)], y=[kpi_y.get(esc, 0)],
+                mode='markers+text', name=esc, text=[esc],
+                textposition="top center",
+                marker=dict(
+                    size=[np_sizes.get(esc, 100)], sizemode='area',
+                    sizeref=2.*max(list(np_sizes.values()) + [1])/(40.**2),
+                    sizemin=4, color=c_color
+                )
+            ))
+            
+        _base_layout(fig_scatter, t_kpi_title, height=350)
+        fig_scatter.update_xaxes(title_text=t_num_int)
+        fig_scatter.update_yaxes(title_text='Indicador_Media')
+        
+        fig_scatter.add_annotation(
+            text=t_bubble_desc, xref="paper", yref="paper",
+            x=1.0, y=1.0, showarrow=False,
+            font=dict(size=9, color=C['muted']), align="right"
+        )
+            
+        st.plotly_chart(fig_scatter, use_container_width=True)
+
+    st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
+    
+    sel_esc = st.radio("Escenario Inferior", options=escs_available, horizontal=True, label_visibility="collapsed")
+    
+    st.markdown("<div style='margin-top:15px'></div>", unsafe_allow_html=True)
+    col_desc, col_w1, col_w2 = st.columns([1.5, 2.25, 2.25])
+    
+    with col_desc:
+        desc_text = "Detailed assessment for " + sel_esc
+        if is_en:
+            fallback_descs = {
+                "Base Case": "Approved development plan considering: 211 activities and the purchase of 3 compressors.",
+                "Scenario 1": "Considers 304 activities, 50 new wells starting drilling in 2025, and the purchase of 2 compressors.",
+                "Scenario 2": "Considers 397 activities, 100 new wells starting drilling in 2025, and the purchase of 3 compressors."
+            }
+            en_descs = TRANSLATIONS.get("English", {}).get("descriptions", fallback_descs)
+            desc_text = en_descs.get(sel_esc.strip(), fallback_descs.get(sel_esc.strip(), "Detailed assessment for " + sel_esc))
+        else:
+            col_desc_df = 'Description' if 'Description' in desc_df.columns else 'Descripcion'
+            col_esc_df = 'Scenario' if 'Scenario' in desc_df.columns else 'Escenario'
+            if col_esc_df in desc_df.columns and col_desc_df in desc_df.columns:
+                row_desc = desc_df[desc_df[col_esc_df] == sel_esc]
+                if not row_desc.empty:
+                    desc_text = row_desc.iloc[0][col_desc_df]
+                    
+        st.markdown(f"""
+            <div style='background-color:#F7F9FC; border:1px solid #D0D7DE; padding:15px; border-radius:6px; height:100%; display:flex; align-items:center; justify-content:center; box-shadow: 2px 2px 5px rgba(0,0,0,0.05);'>
+                <p style='font-size:12px; color:#24292F; text-align:center; margin:0;'>{desc_text}</p>
+            </div>
+        """, unsafe_allow_html=True)
+
+    def draw_waterfall(agrupacion_precio, title):
+        sub = pbi3[(pbi3[col_esc_pbi3] == sel_esc) & (pbi3[col_act] == sel_activo) & (pbi3['Grouping' if is_en else 'Agrupación'] == agrupacion_precio)]
+        
+        waterfall_inds = {
+            "Take PDVSA/bpce (Contratista)": "PDVSA Take/boe\n(Contractor)",
+            "Regalías (Contratista)": "Royalties\n(Contractor)",
+            "Opex/bpce (Contratista)": "OPEX/boe\n(Contractor)",
+            "Capex/bpce (Contratista)": "CAPEX/boe\n(Contractor)",
+            "Ganancia/bpce (Contratista)": "Profit/boe\n(Contractor)",
+            "ISLR/bpce (Contratista)": "Income Tax/boe\n(Contractor)"
+        }
+        
+        search_inds = {}
+        for k, v in waterfall_inds.items():
+            mapped_k = TRANSLATIONS.get('English', {}).get('values', {}).get(k, k) if is_en else k
+            display_name = v if is_en else k.replace(' (', '\n(')
+            search_inds[mapped_k] = display_name
+            
+        data_points = []
+        for ind_key, display_name in search_inds.items():
+            row = sub[sub[col_ind] == ind_key]
+            if not row.empty:
+                val = row.iloc[0][col_val_pbi3]
+                data_points.append({'name': display_name, 'value': float(val)})
+                
+        data_points.sort(key=lambda x: x['value'], reverse=True)
+        
+        x_vals = [d['name'] for d in data_points] + [t_total]
+        y_vals = [d['value'] for d in data_points] + [sum(d['value'] for d in data_points)]
+        measure_vals = ["relative"] * len(data_points) + ["total"]
+        
+        fig = go.Figure(go.Waterfall(
+            name="20", orientation="v", measure=measure_vals,
+            x=x_vals, textposition="outside", text=[f"{v:.2f}" for v in y_vals], y=y_vals,
+            connector={"line":{"color":"rgb(63, 63, 63)"}},
+            decreasing={"marker":{"color": C['orange']}},
+            increasing={"marker":{"color": "#E5A024"}}, 
+            totals={"marker":{"color": C['navy']}},    
+        ))
+        
+        _base_layout(fig, title, height=220)
+        fig.update_layout(margin=dict(l=10, r=10, t=30, b=40), showlegend=False, waterfallgap=0.3)
+        fig.update_xaxes(tickfont=dict(size=8), tickangle=0)
+        return fig
+
+    with col_w1:
+        fig_w1 = draw_waterfall('36 USD/bl', t_ind_boe_36)
+        st.plotly_chart(fig_w1, use_container_width=True)
+        
+    with col_w2:
+        fig_w2 = draw_waterfall('50 USD/bl', t_ind_boe_50)
+        st.plotly_chart(fig_w2, use_container_width=True)
+
+
 # ──────────────────────────────────────────────
 #  MAIN RENDER (orchestrator with Tabs)
 # ──────────────────────────────────────────────
-def render_dashboard(datos, escenario, texts):
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(texts['tabs'])
+def render_dashboard(datos, escenario, texts, lang):
+    tabs = st.tabs(texts['tabs'])
 
-    with tab1:
+    with tabs[0]:
         try:
             render_tab_produccion(datos, escenario, texts)
         except Exception as e:
             st.error(f"Error en Producción: {e}")
 
-    with tab2:
+    with tabs[1]:
         try:
             render_tab_valoracion(datos, escenario, texts)
         except Exception as e:
             st.error(f"Error en Valoración: {e}")
 
-    with tab3: # Ahora es Comparación
+    with tabs[2]:
         try:
             render_tab_comparacion(datos, texts)
         except Exception as e:
             st.error(f"Error en Comparación: {e}")
 
-    with tab4: # Ahora es Gestión de Pozos
+    with tabs[3]:
         try:
             render_tab_pozos(datos, escenario, texts)
         except Exception as e:
             st.error(f"Error en Pozos: {e}")
 
-    with tab5: # Ahora es Análisis Corner
+    with tabs[4]:
+        try:
+            render_tab_kpi_intervenciones(datos, texts, lang)
+        except Exception as e:
+            st.error(f"Error en KPI vs Intervenciones: {e}")
+
+    with tabs[5]:
         try:
             render_tab_corner(datos, escenario, texts)
         except Exception as e:

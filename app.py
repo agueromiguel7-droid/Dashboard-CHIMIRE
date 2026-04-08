@@ -334,7 +334,7 @@ if st.session_state["authentication_status"]:
             "title":        "Valoración del Campo CHIMIRE",
             "subtitle":     "Dashboard de Análisis de Producción y Economía",
             "scenario":     "Escenario",
-            "tabs":         ["📈 Producción y Costos", "📊 Valoración y Resumen", "📉 Comparación Escenarios", "🛢️ Gestión de Pozos", "🏁 Análisis Corner"],
+            "tabs":         ["📈 Producción y Costos", "📊 Valoración y Resumen", "📉 Comparación Escenarios", "🛢️ Gestión de Pozos", "📉 KPI vs Intervenciones", "🏁 Análisis Corner"],
             "metrica":      "Métrica",
             "rango":        "Rango Probabilístico",
             "unit":         "Unidad",
@@ -356,7 +356,7 @@ if st.session_state["authentication_status"]:
             "title":        "CHIMIRE Field Valuation",
             "subtitle":     "Production & Economic Analysis Dashboard",
             "scenario":     "Scenario",
-            "tabs":         ["📈 Production & Costs", "📊 Valuation & Summary", "📉 Scenario Comparison", "🛢️ Well Management", "🏁 Corner Analysis"],
+            "tabs":         ["📈 Production & Costs", "📊 Valuation & Summary", "📉 Scenario Comparison", "🛢️ Well Management", "📉 KPI vs Interventions", "🏁 Corner Analysis"],
             "metrica":      "Metric",
             "rango":        "Probabilistic Range",
             "unit":         "Unit",
@@ -382,7 +382,7 @@ if st.session_state["authentication_status"]:
                 unsafe_allow_html=True)
 
     # Renderizado por Pestañas
-    ui.render_dashboard(datos, escenario_selected, texts)
+    ui.render_dashboard(datos, escenario_selected, texts, lang)
 
 elif st.session_state["authentication_status"] is False:
     st.error("Usuario/contraseña incorrectos")
