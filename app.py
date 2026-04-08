@@ -297,9 +297,9 @@ if st.session_state["authentication_status"]:
                 # Si el idioma es inglés, buscamos por el nombre traducido
                 if lang == "English":
                     # Use centralized translations for English descriptions
-                    desc_text = TRANSLATIONS.get("English", {}).get("descriptions", {}).get(
-                        escenario_selected, "Detailed assessment for " + escenario_selected
-                    )
+                    # Added .strip() to handle potential whitespace from Excel mapping
+                    en_descs = TRANSLATIONS.get("English", {}).get("descriptions", {})
+                    desc_text = en_descs.get(escenario_selected.strip(), "Detailed assessment for " + escenario_selected)
                 else:
                     col_desc = 'Description' if 'Description' in df_desc.columns else 'Descripcion'
                     desc_text = desc_row.iloc[0][col_desc]
