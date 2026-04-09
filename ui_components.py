@@ -907,25 +907,7 @@ def render_tab_corner(datos, escenario, texts):
 
     # Selector de Indicador
     if col_ind in df.columns:
-        indicadores = df[col_ind].dropna().unique().tolist()
-        
-        # Orden de prioridad para mostrar estos indicadores en la cima de la lista
-        is_en = (texts['metrica'] != 'Métrica')
-        pri_es = [
-            "Valor presente neto 15 (Contratista)",
-            "TIR Nominal Modificada (Contratista)",
-            "VPN15/bpce (Contratista)"
-        ]
-        pri_en = [
-            "Net Present Value 15 (Contractor)",
-            "Modified Nominal IRR (Contractor)",
-            "NPV15/boe (Contractor)"
-        ]
-        priority = pri_en if is_en else pri_es
-        
-        top_inds = [x for x in priority if x in indicadores]
-        rest_inds = [x for x in indicadores if x not in priority]
-        indicadores = top_inds + rest_inds
+        indicadores = sorted(df[col_ind].dropna().unique().tolist())
 
         # Find default indicator ("presente neto" or translated "net present")
         search_key = TRANSLATIONS['English']['keywords'].get('neto 15', 'neto 15') if is_en else 'presente neto'
