@@ -1219,80 +1219,80 @@ def render_tab_kpi_intervenciones(datos, texts, lang):
     col_act = 'Asset' if 'Asset' in pbi3.columns else 'Activo'
     activos_all = pbi3[col_act].dropna().unique().tolist()
     
-    col_grp = next((c for c in pbi3.columns if 'Agrupaci' in c or 'Grouping' in c), 'Agrupación')
+    # Mapeo de columnas con tolerancia a errores de codificación (Agrupacin / Agrupación)
+    col_grp = next((c for c in pbi3.columns if 'Agrup' in str(c) or 'Group' in str(c)), 'Agrupación')
     if col_grp in pbi3.columns:
-        precios_all = sorted(pbi3[col_grp].dropna().unique().tolist())
+        precios_all = sorted([str(x) for x in pbi3[col_grp].dropna().unique()])
     else:
         precios_all = ['36 USD/bl', '50 USD/bl']
     
-    col_f, col_g = st.columns([1, 3])
+    # --- FILTROS SUPERIORES ---
+    st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
+    f_c1, f_c2, f_c3 = st.columns([1, 1, 1.5])
     
-    with col_f:
-        # Fila 1: Participación y Precio
-        f_c1, f_c2 = st.columns(2)
-        with f_c1:
-            sel_activo = st.radio(t_part, options=activos_all, index=0, key="kpi_act_radio")
-        with f_c2:
-            sel_precio = st.radio(t_price, options=precios_all, index=0, key="kpi_price_radio")
-        
-        st.markdown(f"<div style='margin-top:20px'></div>", unsafe_allow_html=True)
+    with f_c1:
+        sel_activo = st.radio(t_part, options=activos_all, index=0, key="kpi_act_vfinal")
+    with f_c2:
+        sel_precio = st.radio(t_price, options=precios_all, index=0, key="kpi_price_vfinal")
+    with f_c3:
         st.markdown(f"<p style='font-size:12px;font-weight:600;color:{C['navy']}'>KPI</p>", unsafe_allow_html=True)
-        sel_kpi = st.selectbox("KPI a graficar", options=kpis_all, index=1 if len(kpis_all) > 1 else 0, label_visibility="collapsed")
-        
-    with col_g:
-        col_esc_p2 = 'Scenario' if 'Scenario' in pozos2.columns else 'Escenario'
-        col_cant_p2 = next((c for c in ['Cantidad', 'Quantity', 'Count'] if c in pozos2.columns), None)
-        if col_cant_p2 and col_esc_p2 in pozos2.columns:
-            intervenciones = pozos2.groupby(col_esc_p2)[col_cant_p2].sum().to_dict()
-        else:
-            intervenciones = {}
-            
-        col_esc_mpp = 'Scenario' if 'Scenario' in mpp.columns else 'Escenario'
-        col_var_mpp = 'Variable' if 'Variable' in mpp.columns else 'Variable'
-        col_cat_mpp = 'Category' if 'Category' in mpp.columns else 'Categoría'
-        
-        np_sizes = {}
-        for esc in escs_available:
-            sub_mpp = mpp[(mpp[col_esc_mpp] == esc) & (mpp[col_var_mpp] == 'Np') & (mpp[col_cat_mpp].isin(['Media', 'P50', 'Mean', 'Expected']))]
-            val = 0
-            if not sub_mpp.empty:
-                numeric_vals = pd.to_numeric(sub_mpp.iloc[0], errors='coerce').dropna()
-                val = numeric_vals.max() if not numeric_vals.empty else 100
-            np_sizes[esc] = val if val > 0 else 100
+        sel_kpi = st.selectbox("KPI selector", options=kpis_all, index=1 if len(kpis_all) > 1 else 0, label_visibility="collapsed", key="kpi_sel_vfinal")
 
-        col_val_pbi3 = 'Mean' if 'Mean' in pbi3.columns else 'Media'
-        kpi_y = {}
-        for esc in escs_available:
-            # Filtrar por Escenario, Activo (Participación), KPI Y PRECIO
-            sub_pbi = pbi3[(pbi3[col_esc_pbi3] == esc) & (pbi3[col_act] == sel_activo) & (pbi3[col_ind] == sel_kpi) & (pbi3[col_grp] == sel_precio)]
-            val = sub_pbi[col_val_pbi3].mean() if not sub_pbi.empty else 0
-            kpi_y[esc] = val
-
-        fig_scatter = go.Figure()
-        for esc in escs_available:
-            c_color = _SCENARIO_COLORS.get(esc, _SCENARIO_COLORS.get(next((k for k, v in TRANSLATIONS.get('English', {}).get('values', {}).items() if v == esc), esc), C['navy']))
-            fig_scatter.add_trace(go.Scatter(
-                x=[intervenciones.get(esc, 0)], y=[kpi_y.get(esc, 0)],
-                mode='markers+text', name=esc, text=[esc],
-                textposition="top center",
-                marker=dict(
-                    size=[np_sizes.get(esc, 100)], sizemode='area',
-                    sizeref=2.*max(list(np_sizes.values()) + [1])/(40.**2),
-                    sizemin=4, color=c_color
-                )
-            ))
-            
-        _base_layout(fig_scatter, t_kpi_title, height=350)
-        fig_scatter.update_xaxes(title_text=t_num_int)
-        fig_scatter.update_yaxes(title_text='Indicador_Media')
+    # --- PROCESAMIENTO DE DATOS PARA GRÁFICO ---
+    col_esc_p2 = 'Scenario' if 'Scenario' in pozos2.columns else 'Escenario'
+    col_cant_p2 = next((c for c in ['Cantidad', 'Quantity', 'Count'] if c in pozos2.columns), None)
+    if col_cant_p2 and col_esc_p2 in pozos2.columns:
+        intervenciones = pozos2.groupby(col_esc_p2)[col_cant_p2].sum().to_dict()
+    else:
+        intervenciones = {}
         
-        fig_scatter.add_annotation(
-            text=t_bubble_desc, xref="paper", yref="paper",
-            x=1.0, y=1.0, showarrow=False,
-            font=dict(size=9, color=C['muted']), align="right"
-        )
-            
-        st.plotly_chart(fig_scatter, use_container_width=True)
+    col_esc_mpp = 'Scenario' if 'Scenario' in mpp.columns else 'Escenario'
+    col_var_mpp = 'Variable' if 'Variable' in mpp.columns else 'Variable'
+    col_cat_mpp = 'Category' if 'Category' in mpp.columns else 'Categoría'
+    
+    np_sizes = {}
+    for esc in escs_available:
+        sub_mpp = mpp[(mpp[col_esc_mpp] == esc) & (mpp[col_var_mpp] == 'Np') & (mpp[col_cat_mpp].isin(['Media', 'P50', 'Mean', 'Expected']))]
+        val = 0
+        if not sub_mpp.empty:
+            numeric_vals = pd.to_numeric(sub_mpp.iloc[0], errors='coerce').dropna()
+            val = numeric_vals.max() if not numeric_vals.empty else 100
+        np_sizes[esc] = val if val > 0 else 100
+
+    col_val_pbi3 = 'Mean' if 'Mean' in pbi3.columns else 'Media'
+    kpi_y = {}
+    for esc in escs_available:
+        # Filtrar por Escenario, Activo, KPI y PRECIO seleccionados
+        sub_pbi = pbi3[(pbi3[col_esc_pbi3] == esc) & (pbi3[col_act] == sel_activo) & (pbi3[col_ind] == sel_kpi) & (pbi3[col_grp] == sel_precio)]
+        val = sub_pbi[col_val_pbi3].mean() if not sub_pbi.empty else 0
+        kpi_y[esc] = val
+
+    # --- GENERACIÓN DEL GRÁFICO DE DISPERSIÓN ---
+    fig_scatter = go.Figure()
+    for esc in escs_available:
+        c_color = _SCENARIO_COLORS.get(esc, _SCENARIO_COLORS.get(next((k for k, v in TRANSLATIONS.get('English', {}).get('values', {}).items() if v == esc), esc), C['navy']))
+        fig_scatter.add_trace(go.Scatter(
+            x=[intervenciones.get(esc, 0)], y=[kpi_y.get(esc, 0)],
+            mode='markers+text', name=esc, text=[esc],
+            textposition="top center",
+            marker=dict(
+                size=[np_sizes.get(esc, 100)], sizemode='area',
+                sizeref=2.*max(list(np_sizes.values()) + [1])/(40.**2),
+                sizemin=4, color=c_color
+            )
+        ))
+        
+    _base_layout(fig_scatter, t_kpi_title, height=350)
+    fig_scatter.update_xaxes(title_text=t_num_int)
+    fig_scatter.update_yaxes(title_text='Indicador_Media')
+    
+    fig_scatter.add_annotation(
+        text=t_bubble_desc, xref="paper", yref="paper",
+        x=1.0, y=1.0, showarrow=False,
+        font=dict(size=9, color=C['muted']), align="right"
+    )
+        
+    st.plotly_chart(fig_scatter, use_container_width=True)
 
     st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
     
