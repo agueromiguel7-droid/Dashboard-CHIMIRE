@@ -1194,6 +1194,7 @@ def render_tab_kpi_intervenciones(datos, texts, lang):
     # Textos locales
     t_num_int = "No de Intervenciones" if not is_en else "Number of Interventions"
     t_part = "Porcentaje de Participación" if not is_en else "Participation Percentage"
+    t_price = "Precio del Barril" if not is_en else "Barrel Price"
     t_kpi_title = "KPI, Intervenciones y Np" if not is_en else "KPI, Interventions, and Np"
     t_bubble_desc = "<b>Valor</b> = No Intervenciones, <b>Media</b> = KPI Promedio, <b>Máx Acumulado</b> = Np" if not is_en else "<b>Value</b> = Number of Interventions, <b>Mean</b> = Average KPI, <b>Max Cumulative</b> = Np"
     t_ind_boe_36 = "Indicadores por Barril (36 USD/boe)" if not is_en else "Indicators per Barrel (36 USD/boe)"
