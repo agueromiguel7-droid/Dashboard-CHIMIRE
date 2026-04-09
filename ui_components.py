@@ -908,6 +908,7 @@ def render_tab_corner(datos, escenario, texts):
     # Selector de Indicador
     if col_ind in df.columns:
         indicadores = sorted(df[col_ind].dropna().unique().tolist())
+        is_en = (texts['metrica'] != 'Métrica')
 
         # Find default indicator ("presente neto" or translated "net present")
         search_key = TRANSLATIONS['English']['keywords'].get('neto 15', 'neto 15') if is_en else 'presente neto'
