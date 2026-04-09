@@ -92,19 +92,24 @@ def _card(col, label, value, unit=''):
 # ──────────────────────────────────────────────
 def render_tab_valoracion(datos, escenario, texts):
     agrupacion_opts = dp.get_agrupacion_options(datos)
+    activo_opts = dp.get_activo_options(datos)
 
-    # ── Título + selector de precio (Diseño Ultra-Compacto) ──
+    t_part = "Porcentaje de Participación" if texts['metrica'] == 'Métrica' else "Participation Percentage"
+    t_price = "Precio del Barril" if texts['metrica'] == 'Métrica' else "Barrel Price"
+
+    # ── Título + selectores de precio y participación ──
     st.markdown("<div style='margin-top:-25px'></div>", unsafe_allow_html=True)
-    h_col1, h_col2 = st.columns([1.8, 1])
+    
+    # Diseño balanceado para incluir título y filtros tipo radio en la misma sección superior
+    h_col1, h_col2, h_col3 = st.columns([1.5, 1, 1])
     with h_col1:
         st.markdown(f"<h2 style='margin:0; padding:0; font-size:1.5rem; color:{C['navy']}'>💰 {texts['metrica']} de Valoración</h2>" if texts['metrica'] == 'Métrica' else f"<h2 style='margin:0; padding:0; font-size:1.5rem; color:{C['navy']}'>💰 Valuation {texts['metrica']}s</h2>", unsafe_allow_html=True)
     with h_col2:
-        agrupacion = st.selectbox(
-            "Precio Ref.", agrupacion_opts, index=0,
-            key="val_agrupacion", label_visibility="collapsed"
-        ) if agrupacion_opts else None
+        activo = st.radio(t_part, options=activo_opts, index=0, key="val_activo_radio") if activo_opts else None
+    with h_col3:
+        agrupacion = st.radio(t_price, options=agrupacion_opts, index=0, key="val_agrupacion_radio") if agrupacion_opts else None
 
-    df = dp.get_kpi_df_agrupacion(datos, escenario, agrupacion)
+    df = dp.get_kpi_df_agrupacion(datos, escenario, agrupacion, activo)
 
     def _lookup(keyword):
         # Determine current column names (Indicator/Media vs Indicador/Media)
@@ -266,26 +271,28 @@ def render_tab_valoracion(datos, escenario, texts):
             capex_vars = [v for v in mpp['Variable'].dropna().unique() if 'CAPEX' in str(v).upper()]
             opex_vars  = [v for v in mpp['Variable'].dropna().unique() if 'OPEX'  in str(v).upper()]
 
-            def _sv(vlist, cat='Media'):
+            def _sv(vlist, times_cols, cat='Media'):
                 # Handle categories and variable column names
                 target_cat = TRANSLATIONS['English']['values'].get(cat, cat) if 'Category' in mpp.columns else cat
                 col_var = 'Variable'
                 col_cat = 'Category' if 'Category' in mpp.columns else 'Categoría'
 
-                s = pd.Series(0.0, index=ts_filtered)
+                s = pd.Series(0.0, index=times_cols)
                 for vn in vlist:
                     # Translate vn for English mode
                     search_vn = TRANSLATIONS['English']['values'].get(vn, vn) if 'Category' in mpp.columns else vn
                     r = mpp[(mpp[col_var] == search_vn) & (mpp[col_cat] == target_cat)]
                     if not r.empty:
-                        s += pd.to_numeric(r.iloc[0][ts_filtered], errors='coerce').fillna(0)
+                        s += pd.to_numeric(r.iloc[0][times_cols], errors='coerce').fillna(0)
                 return s
 
-            capex_s = _sv(capex_vars)
-            opex_s  = _sv(opex_vars)
-            # Acumulado se calcula sobre el rango completo para ser correcto, pero filtrado para el plot
-            total_perf_s = (pd.to_numeric(mpp[mpp['Variable'].isin(capex_vars + opex_vars)][ts_c].sum(), errors='coerce')).fillna(0)
-            acum_s_full = total_perf_s.cumsum()
+            capex_s = _sv(capex_vars, ts_filtered)
+            opex_s  = _sv(opex_vars, ts_filtered)
+            
+            # Acumulado se calcula sobre el rango completo (en la categoría "Media")
+            capex_s_full = _sv(capex_vars, ts_c)
+            opex_s_full  = _sv(opex_vars, ts_c)
+            acum_s_full = (capex_s_full + opex_s_full).cumsum()
             acum_s = acum_s_full[mask]
 
             fig_co = go.Figure()
