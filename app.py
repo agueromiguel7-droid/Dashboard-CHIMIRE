@@ -382,7 +382,7 @@ if st.session_state["authentication_status"]:
                 unsafe_allow_html=True)
 
     # Renderizado por Pestañas
-    ui.render_dashboard(datos, escenario_selected, texts, lang)
+    ui.render_dashboard(datos, escenario_selected, texts)
 
 elif st.session_state["authentication_status"] is False:
     st.error("Usuario/contraseña incorrectos")

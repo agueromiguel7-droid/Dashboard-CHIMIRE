@@ -1230,15 +1230,15 @@ def render_tab_kpi_intervenciones(datos, texts, lang):
         
         st.markdown(f"<div style='margin-top:15px'></div>", unsafe_allow_html=True)
         st.markdown(f"<p style='font-size:12px;font-weight:600;color:{C['navy']}'>KPI</p>", unsafe_allow_html=True)
-        sel_kpi = st.radio("KPI a graficar", options=kpis_all, index=1 if len(kpis_all) > 1 else 0, label_visibility="collapsed")
+        sel_kpi = st.selectbox("KPI a graficar", options=kpis_all, index=1 if len(kpis_all) > 1 else 0, label_visibility="collapsed")
         
     with col_g:
         col_esc_p2 = 'Scenario' if 'Scenario' in pozos2.columns else 'Escenario'
-        col_cant_p2 = 'Quantity' if 'Quantity' in pozos2.columns else 'Cantidad'
-        if col_cant_p2 in pozos2.columns and col_esc_p2 in pozos2.columns:
+        col_cant_p2 = next((c for c in ['Cantidad', 'Quantity', 'Count'] if c in pozos2.columns), None)
+        if col_cant_p2 and col_esc_p2 in pozos2.columns:
             intervenciones = pozos2.groupby(col_esc_p2)[col_cant_p2].sum().to_dict()
         else:
-            intervenciones = {e: 0 for e in escs_available}
+            intervenciones = {}
             
         col_esc_mpp = 'Scenario' if 'Scenario' in mpp.columns else 'Escenario'
         col_var_mpp = 'Variable' if 'Variable' in mpp.columns else 'Variable'
@@ -1321,18 +1321,18 @@ def render_tab_kpi_intervenciones(datos, texts, lang):
         sub = pbi3[(pbi3[col_esc_pbi3] == sel_esc) & (pbi3[col_act] == sel_activo) & (pbi3['Grouping' if is_en else 'Agrupación'] == agrupacion_precio)]
         
         waterfall_inds = {
-            "Take PDVSA/bpce (Contratista)": "PDVSA Take/boe\n(Contractor)",
-            "Regalías (Contratista)": "Royalties\n(Contractor)",
-            "Opex/bpce (Contratista)": "OPEX/boe\n(Contractor)",
-            "Capex/bpce (Contratista)": "CAPEX/boe\n(Contractor)",
-            "Ganancia/bpce (Contratista)": "Profit/boe\n(Contractor)",
-            "ISLR/bpce (Contratista)": "Income Tax/boe\n(Contractor)"
+            "Take PDVSA/bpce (Contratista)": "PDVSA Take/boe<br>(Contractor)",
+            "Regalías (Contratista)": "Royalties<br>(Contractor)",
+            "Opex/bpce (Contratista)": "OPEX/boe<br>(Contractor)",
+            "Capex/bpce (Contratista)": "CAPEX/boe<br>(Contractor)",
+            "Ganancia/bpce (Contratista)": "Profit/boe<br>(Contractor)",
+            "ISLR/bpce (Contratista)": "Income Tax/boe<br>(Contractor)"
         }
         
         search_inds = {}
         for k, v in waterfall_inds.items():
             mapped_k = TRANSLATIONS.get('English', {}).get('values', {}).get(k, k) if is_en else k
-            display_name = v if is_en else k.replace(' (', '\n(')
+            display_name = v if is_en else k.replace(' (', '<br>(')
             search_inds[mapped_k] = display_name
             
         data_points = []
@@ -1374,7 +1374,8 @@ def render_tab_kpi_intervenciones(datos, texts, lang):
 # ──────────────────────────────────────────────
 #  MAIN RENDER (orchestrator with Tabs)
 # ──────────────────────────────────────────────
-def render_dashboard(datos, escenario, texts, lang):
+def render_dashboard(datos, escenario, texts):
+    lang = 'Español' if texts.get('metrica') == 'Métrica' else 'English'
     tabs = st.tabs(texts['tabs'])
 
     with tabs[0]:
