@@ -1189,10 +1189,6 @@ def render_tab_comparacion(datos, texts):
 
 
 def render_tab_kpi_intervenciones(datos, texts, lang):
-    import plotly.graph_objects as go
-    import pandas as pd
-    from translations import TRANSLATIONS
-    
     is_en = (lang == 'English')
     
     # Textos locales
