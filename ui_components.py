@@ -1219,8 +1219,11 @@ def render_tab_kpi_intervenciones(datos, texts, lang):
     col_act = 'Asset' if 'Asset' in pbi3.columns else 'Activo'
     activos_all = pbi3[col_act].dropna().unique().tolist()
     
-    col_grp = 'Grouping' if 'Grouping' in pbi3.columns else 'Agrupación'
-    precios_all = sorted(pbi3[col_grp].dropna().unique().tolist())
+    col_grp = next((c for c in pbi3.columns if 'Agrupaci' in c or 'Grouping' in c), 'Agrupación')
+    if col_grp in pbi3.columns:
+        precios_all = sorted(pbi3[col_grp].dropna().unique().tolist())
+    else:
+        precios_all = ['36 USD/bl', '50 USD/bl']
     
     col_f, col_g = st.columns([1, 3])
     
@@ -1228,11 +1231,9 @@ def render_tab_kpi_intervenciones(datos, texts, lang):
         # Fila 1: Participación y Precio
         f_c1, f_c2 = st.columns(2)
         with f_c1:
-            st.markdown(f"<p style='font-size:12px;font-weight:600;color:{C['navy']}'>{t_part}</p>", unsafe_allow_html=True)
-            sel_activo = st.radio("Participación", options=activos_all, index=0, label_visibility="collapsed", key="kpi_act_radio")
+            sel_activo = st.radio(t_part, options=activos_all, index=0, key="kpi_act_radio")
         with f_c2:
-            st.markdown(f"<p style='font-size:12px;font-weight:600;color:{C['navy']}'>{t_price}</p>", unsafe_allow_html=True)
-            sel_precio = st.radio("Precio", options=precios_all, index=0, label_visibility="collapsed", key="kpi_price_radio")
+            sel_precio = st.radio(t_price, options=precios_all, index=0, key="kpi_price_radio")
         
         st.markdown(f"<div style='margin-top:20px'></div>", unsafe_allow_html=True)
         st.markdown(f"<p style='font-size:12px;font-weight:600;color:{C['navy']}'>KPI</p>", unsafe_allow_html=True)
