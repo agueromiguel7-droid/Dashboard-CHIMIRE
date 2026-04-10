@@ -1,6 +1,6 @@
 """
-ui_components.py  –  CHIMIRE Dashboard
-Fidelidad visual al reporte Power BI (carpeta Imagens Chimire)
+ui_components.py  –  CAMPO R2 Dashboard
+Fidelidad visual al reporte Power BI (carpeta Imagens CAMPO R2)
 Paleta: Deep Navy #0B1426 | Electric Cyan #00E5FF | Orange-highlight #FF5722 | Blue-mid #1565C0
 """
 import streamlit as st

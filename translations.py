@@ -1,5 +1,5 @@
 
-# translations.py – CHIMIRE Dashboard Internationalization Mapping
+# translations.py – CAMPO R2 Dashboard Internationalization Mapping
 
 TRANSLATIONS = {
     "English": {

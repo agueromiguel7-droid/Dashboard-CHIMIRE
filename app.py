@@ -6,7 +6,7 @@ from translations import TRANSLATIONS
 
 # --- PAGE CONFIG ---
 st.set_page_config(
-    page_title="Dashboard CHIMIRE Analytics",
+    page_title="Dashboard CAMPO R2 Analytics",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -171,7 +171,7 @@ def manual_login():
         st.markdown("<div style='height:30px'></div>", unsafe_allow_html=True)
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            st.markdown("<h2 style='text-align: center; color: #0B2440;'>CHIMIRE Login</h2>", unsafe_allow_html=True)
+            st.markdown("<h2 style='text-align: center; color: #0B2440;'>CAMPO R2 Login</h2>", unsafe_allow_html=True)
             with st.form("Login Form"):
                 user_input = st.text_input("Username").strip().lower()
                 pass_input = st.text_input("Password", type="password")
@@ -247,7 +247,7 @@ if st.session_state["authentication_status"]:
         try:
             st.image("mi_logo.png", use_container_width=True)
         except Exception:
-            st.markdown("### ⚡ CHIMIRE")
+            st.markdown("### ⚡ CAMPO R2")
         st.divider()
 
         # Idioma
@@ -331,7 +331,7 @@ if st.session_state["authentication_status"]:
     # ── TEXTOS i18n GLOBAL ──────────────────────
     texts = {
         "Español": {
-            "title":        "Valoración del Campo CHIMIRE",
+            "title":        "Valoración del CAMPO R2",
             "subtitle":     "Dashboard de Análisis de Producción y Economía",
             "scenario":     "Escenario",
             "tabs":         ["📈 Producción y Costos", "📊 Valoración y Resumen", "📉 Comparación Escenarios", "🛢️ Gestión de Pozos", "📉 KPI vs Intervenciones", "🏁 Análisis Corner"],
@@ -353,7 +353,7 @@ if st.session_state["authentication_status"]:
             "accum":        "Acumulada",
         },
         "English": {
-            "title":        "CHIMIRE Field Valuation",
+            "title":        "CAMPO R2 Field Valuation",
             "subtitle":     "Production & Economic Analysis Dashboard",
             "scenario":     "Scenario",
             "tabs":         ["📈 Production & Costs", "📊 Valuation & Summary", "📉 Scenario Comparison", "🛢️ Well Management", "📉 KPI vs Interventions", "🏁 Corner Analysis"],
